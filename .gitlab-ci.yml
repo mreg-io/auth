@@ -1,0 +1,26 @@
+.web:
+  image: node:latest
+  before_script:
+    # pnpm config
+    - corepack enable
+    - corepack prepare pnpm@latest-9 --activate
+    - cd web
+    - pnpm install
+
+web:build:
+  stage: build
+  extends: .web
+  script:
+    - pnpm build
+
+web:lint:
+  stage: test
+  extends: .web
+  script:
+    - pnpm lint
+
+web:format:
+  stage: test
+  extends: .web
+  script:
+    - pnpm format:ci
