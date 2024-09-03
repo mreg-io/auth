@@ -26,6 +26,15 @@ module.exports = {
       'warn',
       { allowFunctionsWithoutTypeParameters: true },
     ],
+    // react-hook-form handleSubmit() bypass
+    '@typescript-eslint/no-misused-promises': [
+      2,
+      {
+        checksVoidReturn: {
+          attributes: false,
+        },
+      },
+    ],
   },
   overrides: [
     {
