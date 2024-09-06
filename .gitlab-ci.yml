@@ -1,3 +1,20 @@
+# Reference: https://docs.gitlab.com/ee/ci/yaml/workflow.html#switch-between-branch-pipelines-and-merge-request-pipelines
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+include:
+  # Include migrations CI if there are commits pushed to default branch or file changes in migrations folder
+  - local: migrations/.gitlab-ci.yml
+    rules:
+      - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      - changes:
+          - .gitlab-ci.yml
+          - migrations/**
+
 .web:
   image: node:latest
   before_script:

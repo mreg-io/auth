@@ -1,11 +1,9 @@
-CREATE TYPE auth.public.identity_state AS ENUM ('active', 'suspended');
+CREATE TYPE identity_state AS ENUM ('active', 'suspended');
 
-
-
-CREATE TABLE IF NOT EXISTS auth.public.identities
+CREATE TABLE identities
 (
     id                UUID PRIMARY KEY                                              DEFAULT gen_random_ulid(),
-    state             auth.public.identity_state                           NOT NULL DEFAULT 'active',
+    state             identity_state                           NOT NULL DEFAULT 'active',
     full_name         STRING(64),
     display_name      STRING(64),
     avatar            STRING(256),
@@ -15,7 +13,7 @@ CREATE TABLE IF NOT EXISTS auth.public.identities
     state_update_time TIMESTAMPTZ CHECK (state_update_time >= create_time) NOT NULL DEFAULT current_timestamp()
 );
 
-CREATE TABLE IF NOT EXISTS auth.public.sessions
+CREATE TABLE sessions
 (
     id                            UUID PRIMARY KEY                                     DEFAULT gen_random_ulid(),
     active                        BOOL                                        NOT NULL DEFAULT true,
@@ -27,7 +25,8 @@ CREATE TABLE IF NOT EXISTS auth.public.sessions
     identity_id                   UUID                                        NOT NULL REFERENCES identities (id) ON DELETE CASCADE,
     INDEX identity_id_idx (identity_id)
 );
-CREATE TABLE IF NOT EXISTS auth.public.emails
+
+CREATE TABLE emails
 (
     address     STRING(320) PRIMARY KEY,
     verified    BOOLEAN                                        NOT NULL DEFAULT false,
@@ -37,7 +36,8 @@ CREATE TABLE IF NOT EXISTS auth.public.emails
     identity_id UUID                                           NOT NULL REFERENCES identities (id) ON DELETE CASCADE,
     INDEX identity_id_idx (identity_id)
 );
-CREATE TABLE IF NOT EXISTS auth.public.phones
+
+CREATE TABLE phones
 (
     number      STRING(16) PRIMARY KEY,
     verified    BOOLEAN                                        NOT NULL DEFAULT false,
@@ -47,7 +47,8 @@ CREATE TABLE IF NOT EXISTS auth.public.phones
     identity_id UUID                                           NOT NULL REFERENCES identities (id) ON DELETE CASCADE,
     INDEX identity_id_idx (identity_id)
 );
-CREATE TABLE IF NOT EXISTS auth.public.registration_flows
+
+CREATE TABLE registration_flows
 (
     id          UUID PRIMARY KEY                                     DEFAULT gen_random_ulid(),
     issued_at   TIMESTAMPTZ                                 NOT NULL DEFAULT current_timestamp(),
@@ -55,12 +56,14 @@ CREATE TABLE IF NOT EXISTS auth.public.registration_flows
     identity_id UUID                                        NOT NULL REFERENCES identities (id) ON DELETE CASCADE,
     INDEX identity_id_idx (identity_id)
 );
-CREATE TABLE IF NOT EXISTS auth.public.passwords
+
+CREATE TABLE passwords
 (
     identity_id   UUID PRIMARY KEY REFERENCES identities (id) ON DELETE CASCADE,
     password_hash STRING(256) NOT NULL
 );
-CREATE TABLE IF NOT EXISTS auth.public.authentication_methods
+
+CREATE TABLE authentication_methods
 (
     id          UUID PRIMARY KEY                   DEFAULT gen_random_ulid(),
     aal         SMALLINT CHECK (aal >= 1) NOT NULL,
@@ -69,7 +72,8 @@ CREATE TABLE IF NOT EXISTS auth.public.authentication_methods
     session_id  UUID                      NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
     INDEX session_id_idx (session_id)
 );
-CREATE TABLE IF NOT EXISTS auth.public.devices
+
+CREATE TABLE devices
 (
     id           UUID PRIMARY KEY,
     ip_address   INET NOT NULL,

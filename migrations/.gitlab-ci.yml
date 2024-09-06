@@ -1,0 +1,22 @@
+.flyway:
+  tags:
+    - docker
+    - amd64
+  image:
+    name: redgate/flyway:10-alpine
+    entrypoint: [""]
+  variables:
+    flyway_environment: ci
+  before_script:
+    - cd migrations
+
+flyway:test:
+  extends: .flyway
+  stage: test
+  script:
+    - flyway -schemas="commit_$CI_COMMIT_SHORT_SHA" info migrate validate clean
+  artifacts:
+    name: report.html
+    paths:
+      - migrations/report.html
+    expose_as: Flyway Info

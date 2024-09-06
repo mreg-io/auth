@@ -1,0 +1,19 @@
+[flyway]
+locations = ["filesystem:./sql"]
+failOnMissingLocations = true
+validateMigrationNaming = true
+
+# Development environment
+[environments.default]
+url = "jdbc:postgresql://my-registry-2412.j77.cockroachlabs.cloud:26257/auth_dev"
+
+[environments.default.flyway]
+cleanDisabled = false
+
+# CI environment
+[environments.ci]
+url = "jdbc:postgresql://my-registry-2412.j77.cockroachlabs.cloud:26257/auth_ci"
+
+[environments.ci.flyway]
+cleanDisabled = false
+reportEnabled = true
