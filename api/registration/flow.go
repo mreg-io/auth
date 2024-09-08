@@ -5,8 +5,8 @@ import (
 )
 
 type Flow struct {
-	flowId         pgtype.UUID
-	issueTime      pgtype.Timestamptz
-	expirationTime pgtype.Timestamptz
-	sessionId      pgtype.UUID
+	FlowID    pgtype.UUID
+	IssuedAt  pgtype.Timestamptz
+	ExpiresAt pgtype.Timestamptz
+	SessionID pgtype.UUID
 }

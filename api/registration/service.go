@@ -19,13 +19,13 @@ func NewService(repository Repository, sessionService session.Service) Service {
 
 func (s *service) CreateRegistrationFlow() (*Flow, error) {
 	// Dependency injection
-	//s.sessionService.CreateSession()
+	// s.sessionService.CreateSession()
 	flow := &Flow{}
 	sessionFlow, err := s.sessionService.CreateSession()
 	if err != nil {
 		return nil, err
 	}
-	flow.sessionId = sessionFlow.GetID()
+	flow.SessionID = sessionFlow.ID
 
 	err = s.repository.insertFlow(flow)
 	return flow, err

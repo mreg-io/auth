@@ -10,14 +10,20 @@ import (
 	"gitlab.mreg.io/my-registry/auth/session"
 )
 
-var sessionService session.Service
+var (
+	sessionRepository session.Repository
+	sessionService    session.Service
+)
 
-var registrationRepository registration.Repository
-var registrationService registration.Service
-var registrationHandler authv1alpha1connect.RegistrationServiceHandler
+var (
+	registrationRepository registration.Repository
+	registrationService    registration.Service
+	registrationHandler    authv1alpha1connect.RegistrationServiceHandler
+)
 
 func bootstrap() {
-	sessionService = session.NewService()
+	sessionRepository = session.NewRepository(conn)
+	sessionService = session.NewService(sessionRepository)
 
 	registrationRepository = registration.NewRepository(conn)
 	registrationService = registration.NewService(registrationRepository, sessionService)

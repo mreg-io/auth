@@ -20,7 +20,7 @@ func NewHandler(service Service) authconnect.RegistrationServiceHandler {
 }
 
 func (h *handler) CreateRegistrationFlow(ctx context.Context, req *connect.Request[auth.CreateRegistrationFlowRequest]) (*connect.Response[auth.CreateRegistrationFlowResponse], error) {
-	//TODO implement me
+	// TODO implement me
 
 	_, err := h.service.CreateRegistrationFlow()
 	if err != nil {
@@ -30,6 +30,6 @@ func (h *handler) CreateRegistrationFlow(ctx context.Context, req *connect.Reque
 }
 
 func (h *handler) CompleteRegistrationFlow(ctx context.Context, req *connect.Request[auth.CompleteRegistrationFlowRequest]) (*connect.Response[auth.CompleteRegistrationFlowResponse], error) {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }

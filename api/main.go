@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"log"
+	"net/http"
+
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-	"log"
-	"net/http"
 )
 
 func main() {

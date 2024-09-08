@@ -43,12 +43,12 @@ func (s *serviceTestSuite) SetupSuite() {
 }
 
 func (s *serviceTestSuite) TestCreateRegistrationFlow_WithoutErr() {
-	flowId := pgtype.UUID{Bytes: [16]byte([]byte("01J75J7AXNYCCCSDASX845RF5W")), Valid: true}
+	flowID := pgtype.UUID{Bytes: [16]byte([]byte("01J75J7AXNYCCCSDASX845RF5W")), Valid: true}
 	call := s.mockRepository.
 		On("insertFlow", mock.Anything).
 		Run(func(args mock.Arguments) {
 			flow := args.Get(0).(*Flow)
-			flow.flowId = flowId
+			flow.FlowID = flowID
 		}).
 		Return(nil).
 		Once()
@@ -60,7 +60,7 @@ func (s *serviceTestSuite) TestCreateRegistrationFlow_WithoutErr() {
 
 	// Assert flow, you should add more
 	s.NotEmpty(flow)
-	s.Equal(flow.flowId, flowId)
+	s.Equal(flow.FlowID, flowID)
 
 	// Assert err
 	s.Require().NoError(err)

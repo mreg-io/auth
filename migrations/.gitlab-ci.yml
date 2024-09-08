@@ -13,6 +13,7 @@
 flyway:test:
   extends: .flyway
   stage: test
+  needs: []
   script:
     - flyway -schemas="commit_$CI_COMMIT_SHORT_SHA" info migrate validate clean
   artifacts:

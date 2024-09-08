@@ -7,10 +7,11 @@ type Repository interface {
 }
 
 type repository struct {
+	conn *pgx.Conn
 }
 
 func NewRepository(conn *pgx.Conn) Repository {
-	return &repository{}
+	return &repository{conn}
 }
 
 func (r *repository) insertFlow(flow *Flow) error {
@@ -18,5 +19,3 @@ func (r *repository) insertFlow(flow *Flow) error {
 	// conn.Insert ...
 	panic("implement me")
 }
-
-//TODO
