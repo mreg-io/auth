@@ -1,0 +1,56 @@
+.api:
+  variables:
+    GOPATH: $CI_PROJECT_DIR/api/.go
+  before_script:
+    - cat $BUF_NETRC > $HOME/.netrc
+    - cd api
+    - mkdir -p .go
+  cache:
+    paths:
+      - api/.go/pkg/mod/
+
+api:build:
+  extends:
+    - .api
+  stage: build
+  image: &go golang:1.23
+  script:
+    - go build ./...
+
+api:lint:
+  extends:
+    - .api
+  needs: [api:build]
+  image:
+    name: golangci/golangci-lint
+    entrypoint: [""]
+  script:
+    - golangci-lint run
+  allow_failure:
+    exit_codes: 1
+  artifacts:
+    paths:
+      - api/gl-code-quality-report.json
+    reports:
+      codequality: api/gl-code-quality-report.json
+
+api:test:
+  extends:
+    - .api
+  needs: [api:build]
+  image: *go
+  script:
+    - go run gotest.tools/gotestsum@latest --junitfile report.xml --format testname -- -race -coverprofile=coverage.txt -covermode=atomic
+    - go get github.com/boumenot/gocover-cobertura
+    - go run github.com/boumenot/gocover-cobertura < coverage.txt > coverage.xml
+  allow_failure:
+    exit_codes: 1
+  artifacts:
+    paths:
+      - api/report.xml
+      - api/coverage.xml
+    reports:
+      junit: api/report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: api/coverage.xml

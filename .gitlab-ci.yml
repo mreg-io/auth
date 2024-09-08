@@ -6,38 +6,31 @@ workflow:
       when: never
     - if: $CI_COMMIT_BRANCH
 
+# Run all pipelines if one of the following criteria met
+# - a commit pushed to default branch
+# - a merge request targeting default branch
+# - any changes in root directory
+# noinspection YAMLSchemaValidation,YAMLSchemaValidation,YAMLSchemaValidation
+.run_all_rules: &run_all_rules
+- if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+- if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+- changes: [ "*" ]
+
 include:
-  # Include migrations CI if there are commits pushed to default branch or file changes in migrations folder
   - local: migrations/.gitlab-ci.yml
     rules:
-      - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      - changes:
-          - .gitlab-ci.yml
-          - migrations/**
+      - *run_all_rules
+      - changes: [ migrations/**/* ]
+  - local: api/.gitlab-ci.yml
+    rules:
+      - *run_all_rules
+      - changes: [ api/**/* ]
+  - local: web/.gitlab-ci.yml
+    rules:
+      - *run_all_rules
+      - changes: [ web/**/* ]
 
-.web:
-  image: node:latest
-  before_script:
-    # pnpm config
-    - corepack enable
-    - corepack prepare pnpm@latest-9 --activate
-    - cd web
-    - pnpm install
-
-web:build:
-  stage: build
-  extends: .web
-  script:
-    - pnpm build
-
-web:lint:
-  stage: test
-  extends: .web
-  script:
-    - pnpm lint
-
-web:format:
-  stage: test
-  extends: .web
-  script:
-    - pnpm format:ci
+default:
+  tags:
+    - docker
+    - arm64

@@ -1,0 +1,46 @@
+[run]
+timeout = "5m"
+
+[output]
+path-prefix = "api"
+
+[[output.formats]]
+format = "colored-line-number"
+path = "stdout"
+
+[[output.formats]]
+format = "code-climate"
+path = "gl-code-quality-report.json"
+
+[linters]
+presets = [
+    "bugs",
+    "metalinter"
+]
+enable = [
+    # Not included default linters
+    "gosimple",
+    "ineffassign",
+    "unused",
+
+    "contextcheck", # Context inheritance
+    "dupl",         # Code duplication
+    "gocognit",     # Check cognitive complexity
+    "goconst",      # Repeated string to const
+    "gofumpt",      # Stricter gofmt
+    "misspell",     # Mispelled words
+]
+disable = [
+    "gosec",        # gosec has been run by GitLab SAST
+]
+
+[severity]
+default-severity = "major"
+
+[[severity.rules]]
+severity = "info"
+linters = ["gofumpt", "misspell"]
+
+[[severity.rules]]
+severity = "minor"
+linters = ["revive", "unused", "dupl"]

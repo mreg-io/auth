@@ -1,0 +1,34 @@
+.web:
+  image: node:latest
+  before_script:
+    # pnpm config
+    - corepack enable
+    - corepack prepare pnpm@latest-9 --activate
+    - cd web
+    - pnpm install
+  cache:
+    key:
+      files:
+        - web/pnpm-lock.yaml
+    paths:
+      - web/.pnpm-store
+
+web:build:
+  stage: build
+  extends: .web
+  script:
+    - pnpm build
+
+web:lint:
+  stage: test
+  extends: .web
+  needs: []
+  script:
+    - pnpm lint
+
+web:format:
+  stage: test
+  extends: .web
+  needs: []
+  script:
+    - pnpm format:ci
