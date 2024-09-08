@@ -26,8 +26,6 @@ api:lint:
     entrypoint: [""]
   script:
     - golangci-lint run
-  allow_failure:
-    exit_codes: 1
   artifacts:
     paths:
       - api/gl-code-quality-report.json
@@ -43,8 +41,6 @@ api:test:
     - go run gotest.tools/gotestsum@latest --junitfile report.xml --format testname -- -race -coverprofile=coverage.txt -covermode=atomic
     - go get github.com/boumenot/gocover-cobertura
     - go run github.com/boumenot/gocover-cobertura < coverage.txt > coverage.xml
-  allow_failure:
-    exit_codes: 1
   artifacts:
     paths:
       - api/report.xml
