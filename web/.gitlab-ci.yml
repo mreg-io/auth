@@ -4,6 +4,7 @@
     # pnpm config
     - corepack enable
     - corepack prepare pnpm@latest-9 --activate
+    - pnpm config set store-dir web/.pnpm-store
     - cd web
     - pnpm install
   cache:
@@ -12,23 +13,33 @@
         - web/pnpm-lock.yaml
     paths:
       - web/.pnpm-store
+    policy: pull
+
+web:dep:
+  extends: .web
+  stage: .pre
+  script:
+    - pnpm install
+  cache:
+    policy: pull-push
 
 web:build:
-  stage: build
   extends: .web
+  stage: build
+  needs: [web:dep]
   script:
     - pnpm build
 
 web:lint:
-  stage: test
   extends: .web
-  needs: []
+  stage: test
+  needs: [web:dep]
   script:
     - pnpm lint
 
 web:format:
-  stage: test
   extends: .web
-  needs: []
+  stage: test
+  needs: [web:dep]
   script:
     - pnpm format:ci
