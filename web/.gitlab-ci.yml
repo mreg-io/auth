@@ -4,8 +4,8 @@
     # pnpm config
     - corepack enable
     - corepack prepare pnpm@latest-9 --activate
-    - pnpm config set store-dir web/.pnpm-store
     - cd web
+    - pnpm config set store-dir .pnpm-store
     - pnpm install
   cache:
     key:
@@ -19,7 +19,7 @@ web:dep:
   extends: .web
   stage: .pre
   script:
-    - ls .pnpm-store
+    - pnpm list
   cache:
     policy: pull-push
 
