@@ -19,7 +19,7 @@ web:dep:
   extends: .web
   stage: .pre
   script:
-    - pnpm install
+    - ls .pnpm-store
   cache:
     policy: pull-push
 
