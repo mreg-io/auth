@@ -39,6 +39,7 @@ default:
 # Dependency scanning
 dependency_scanning:
   extends: .go
+  needs: []
   tags:
     - amd64
   variables:
