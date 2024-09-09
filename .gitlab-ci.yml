@@ -44,3 +44,5 @@ include:
       - *run_all_rules
       - changes: [ web/**/* ]
   - local: Security.gitlab-ci.yml
+    rules:
+      - *run_all_rules
