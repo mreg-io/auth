@@ -26,7 +26,6 @@ workflow:
 
 # Always run GitLab security in amd64 Docker runner
 .security:
-  extends: .go
   needs: []
   tags:
     - docker
@@ -47,6 +46,7 @@ include:
       - changes: [ web/**/* ]
   - template: Jobs/Dependency-Scanning.gitlab-ci.yml
   - template: Jobs/SAST.gitlab-ci.yml
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
 
 default:
   tags:
@@ -55,7 +55,9 @@ default:
 
 # Dependency scanning
 dependency_scanning:
-  extends: .security
+  extends:
+    - .security
+    - .go
   # noinspection YAMLSchemaValidation
   before_script:
     - !reference [.go, before_script]
@@ -65,7 +67,14 @@ dependency_scanning:
     - export PATH=$PATH:/usr/local/go/bin
     - go version
 
+# SAST
 sast:
-  extends: .security
+  extends:
+    - .security
+    - .go
   variables:
     GITLAB_ADVANCED_SAST_ENABLED: "true"
+
+# Secret detection
+secret_detection:
+  extends: .security
