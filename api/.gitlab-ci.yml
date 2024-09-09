@@ -1,12 +1,6 @@
-.go:
-  variables:
-    GOPRIVATE: buf.build/gen/go
-  before_script:
-    - cat $BUF_NETRC > $HOME/.netrc
-
 .api:
   extends: .go
-  image: golang:1.23
+  image: golang:${GO_VERSION}
   variables:
     GOPATH: $CI_PROJECT_DIR/api/.go
   before_script:

@@ -16,6 +16,21 @@ workflow:
 - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
 - changes: [ ".gitlab-ci.yml", ".gitignore", "CODEOWNERS" ]
 
+# Specify project-wide golang version and private packages
+.go:
+  variables:
+    GO_VERSION: 1.23.1
+    GOPRIVATE: buf.build/gen/go
+  before_script:
+    - cat $BUF_NETRC > $HOME/.netrc
+
+# Always run GitLab security in amd64 Docker runner
+.security:
+  extends: .go
+  tags:
+    - docker
+    - amd64
+
 include:
   - local: migrations/.gitlab-ci.yml
     rules:
@@ -30,6 +45,7 @@ include:
       - *run_all_rules
       - changes: [ web/**/* ]
   - template: Jobs/Dependency-Scanning.gitlab-ci.yml
+  - template: Jobs/SAST.gitlab-ci.yml
 
 default:
   tags:
@@ -38,12 +54,8 @@ default:
 
 # Dependency scanning
 dependency_scanning:
-  extends: .go
+  extends: .security
   needs: []
-  tags:
-    - amd64
-  variables:
-    GO_VERSION: 1.23.1
   # noinspection YAMLSchemaValidation
   before_script:
     - !reference [.go, before_script]
@@ -52,3 +64,8 @@ dependency_scanning:
     - rm -rf /usr/bin/go /usr/bin/gofmt /usr/lib/go && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
     - export PATH=$PATH:/usr/local/go/bin
     - go version
+
+sast:
+  extends: .security
+  variables:
+    GITLAB_ADVANCED_SAST_ENABLED: "true"
