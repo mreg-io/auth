@@ -77,4 +77,6 @@ sast:
 
 # Secret detection
 secret_detection:
-  extends: .security
+  extends:
+    - .secret-analyzer  # GitLab's secret_detection extends
+    - .security
