@@ -1,4 +1,4 @@
-.st_rules: &st_rules
+.st_rules: &st_rules |-
   !reference [.run_all, rules]
 
 include:
