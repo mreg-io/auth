@@ -29,8 +29,21 @@ include:
     rules:
       - *run_all_rules
       - changes: [ web/**/* ]
+  - template: Jobs/Dependency-Scanning.gitlab-ci.yml
 
 default:
   tags:
     - docker
     - arm64
+
+# Dependency scanning
+gemnasium-dependency_scanning:
+  extends: .go
+  tags:
+    - amd64
+  variables:
+    GO_VERSION: 1.23.1
+  before_script:
+    # Upgrade go to latest version
+    - apk add --no-cache go
+    - go version

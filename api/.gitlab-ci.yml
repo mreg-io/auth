@@ -1,11 +1,18 @@
+.go:
+  variables:
+    GOPRIVATE: buf.build/gen/go
+  before_script:
+    - cat $BUF_NETRC > $HOME/.netrc
+
 .api:
+  extends: .go
   image: golang:1.23
   variables:
     GOPATH: $CI_PROJECT_DIR/api/.go
   before_script:
-    - cat $BUF_NETRC > $HOME/.netrc
+    - !reference [.go, before_script]
+    - mkdir -p api/.go
     - cd api
-    - mkdir -p .go
   cache:
     paths:
       - api/.go/pkg/mod/
