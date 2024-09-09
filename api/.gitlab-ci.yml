@@ -53,8 +53,8 @@ api:test:
       go run gotest.tools/gotestsum@latest --junitfile report.xml --format testname
       -- -race -coverprofile=coverage.txt -covermode=atomic ./...
   after_script:
-    - go get github.com/boumenot/gocover-cobertura
-    - go run github.com/boumenot/gocover-cobertura < coverage.txt > coverage.xml
+    - cd api
+    - go run github.com/boumenot/gocover-cobertura@latest < coverage.txt > coverage.xml
   artifacts:
     paths:
       - api/report.xml
