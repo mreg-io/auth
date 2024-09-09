@@ -27,6 +27,7 @@ workflow:
 # Always run GitLab security in amd64 Docker runner
 .security:
   extends: .go
+  needs: []
   tags:
     - docker
     - amd64
@@ -55,7 +56,6 @@ default:
 # Dependency scanning
 dependency_scanning:
   extends: .security
-  needs: []
   # noinspection YAMLSchemaValidation
   before_script:
     - !reference [.go, before_script]
