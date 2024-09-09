@@ -1,4 +1,5 @@
 .api:
+  image: golang:1.23
   variables:
     GOPATH: $CI_PROJECT_DIR/api/.go
   before_script:
@@ -8,12 +9,22 @@
   cache:
     paths:
       - api/.go/pkg/mod/
+    policy: pull-push
+
+api:dep:
+  extends:
+    - .api
+  stage: .pre
+  script:
+    - go mod download
+  cache:
+    policy: pull-push
 
 api:build:
   extends:
     - .api
   stage: build
-  image: &go golang:1.23
+  needs: [api:dep]
   script:
     - go build ./...
 
@@ -36,7 +47,6 @@ api:test:
   extends:
     - .api
   needs: [api:build]
-  image: *go
   script:
     - go run gotest.tools/gotestsum@latest --junitfile report.xml --format testname -- -race -coverprofile=coverage.txt -covermode=atomic
     - go get github.com/boumenot/gocover-cobertura
