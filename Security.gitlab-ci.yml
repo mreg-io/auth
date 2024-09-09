@@ -1,16 +1,20 @@
+.st_rules:
+  rules: &st_rules
+    - !reference [.run_all, rules]
+
+include:
+  - template: Jobs/Dependency-Scanning.gitlab-ci.yml
+    <<: *st_rules
+  - template: Jobs/SAST.gitlab-ci.yml
+    <<: *st_rules
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
+
 # Always run GitLab security in amd64 Docker runner
 .security:
   needs: []
   tags:
     - docker
     - amd64
-
-include:
-  - template: Jobs/Dependency-Scanning.gitlab-ci.yml
-    rules: [ !reference [ .run_all, rules ] ]
-  - template: Jobs/SAST.gitlab-ci.yml
-    rules: [ !reference [ .run_all, rules ] ]
-  - template: Jobs/Secret-Detection.gitlab-ci.yml
 
 # Dependency scanning
 dependency_scanning:
