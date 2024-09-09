@@ -24,6 +24,11 @@ dependency_scanning:
     - export PATH=$PATH:/usr/local/go/bin
     - go version
 
+# Make actual job always run to override improper predefined rules
+gemnasium-dependency_scanning:
+  rules:
+    - when: always
+
 # SAST
 sast:
   extends:
@@ -32,8 +37,15 @@ sast:
   variables:
     GITLAB_ADVANCED_SAST_ENABLED: "true"
 
+# Make actual job always run to override improper predefined rules
+gitlab-advanced-sast:
+  rules:
+    - when: always
+
 # Secret detection
 secret_detection:
   extends:
     - .secret-analyzer  # GitLab's secret_detection extends
     - .security
+  rules:
+    - when: always

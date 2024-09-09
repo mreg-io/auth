@@ -1,4 +1,6 @@
 .flyway:
+  extends: .db
+  stage: test
   tags:
     - docker
     - amd64
@@ -7,17 +9,28 @@
     entrypoint: [""]
   variables:
     flyway_environment: ci
+    FLYWAY_SCHEMAS: commit_$CI_COMMIT_SHORT_SHA
   before_script:
     - cd migrations
 
-flyway:test:
+flyway:migrate:
   extends: .flyway
-  stage: test
   needs: []
   script:
-    - flyway -schemas="commit_$CI_COMMIT_SHORT_SHA" info migrate validate clean
+    - flyway info migrate validate
   artifacts:
     name: report.html
     paths:
       - migrations/report.html
     expose_as: Flyway Info
+
+flyway:clean:
+  extends: .flyway
+  needs:
+    - job: flyway:migrate
+    - job: api:test
+      optional: true
+  rules:
+    - when: always
+  script:
+    - flyway clean

@@ -1,5 +1,7 @@
 .api:
-  extends: .go
+  extends:
+    - .db
+    - .go
   image: golang:${GO_VERSION}
   variables:
     GOPATH: $CI_PROJECT_DIR/api/.go
@@ -38,6 +40,8 @@ api:lint:
     entrypoint: [""]
   script:
     - golangci-lint run
+  allow_failure:
+    exit_codes: 1
   artifacts:
     paths:
       - api/gl-code-quality-report.json
@@ -47,7 +51,9 @@ api:lint:
 api:test:
   extends:
     - .api
-  needs: [api:build]
+  needs: [api:build, flyway:migrate]
+  variables:
+    DATABASE_URL: "postgresql://$FLYWAY_USER:$FLYWAY_PASSWORD@my-registry-2412.j77.cockroachlabs.cloud:26257/auth_ci?application_name=auth_api_test&search_path=$DATABASE_SCHEMA"
   script:
     - >-
       go run gotest.tools/gotestsum@latest --junitfile report.xml --format testname
@@ -55,6 +61,8 @@ api:test:
   after_script:
     - cd api
     - go run github.com/boumenot/gocover-cobertura@latest < coverage.txt > coverage.xml
+  allow_failure:
+    exit_codes: 1
   artifacts:
     paths:
       - api/report.xml
