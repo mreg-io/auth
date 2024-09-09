@@ -46,6 +46,8 @@ dependency_scanning:
   # noinspection YAMLSchemaValidation
   before_script:
     - !reference [.go, before_script]
-    # Upgrade go to latest version
-    - apk add --no-cache go
+    # Upgrade go to GO_VERSION
+    - wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz
+    - rm -rf /usr/bin/go /usr/bin/gofmt /usr/lib/go && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
+    - export PATH=$PATH:/usr/local/go/bin
     - go version
