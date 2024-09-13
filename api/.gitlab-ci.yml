@@ -61,8 +61,6 @@ api:test:
   after_script:
     - cd api
     - go run github.com/boumenot/gocover-cobertura@latest < coverage.txt > coverage.xml
-  allow_failure:
-    exit_codes: 1
   artifacts:
     paths:
       - api/report.xml
