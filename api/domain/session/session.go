@@ -6,12 +6,14 @@ import (
 
 type Session struct {
 	ID                          string
+	Active                      bool
+	AuthenticatorAssuranceLevel uint8
 	IssuedAt                    time.Time
 	ExpiresAt                   time.Time
-	Active                      bool
 	AuthenticatedAt             time.Time
-	AuthenticatorAssuranceLevel int16
-	devices                     []Device
+	Devices                     []Device
+
+	ExpiryInterval time.Duration
 
 	csrfToken string
 }

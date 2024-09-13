@@ -18,12 +18,12 @@ func NewRegistrationHandler(registrationService registration.Service) authConnec
 	return &registrationHandler{registrationService}
 }
 
-func (r *registrationHandler) CreateRegistrationFlow(ctx context.Context, req *connect.Request[auth.CreateRegistrationFlowRequest]) (*connect.Response[auth.CreateRegistrationFlowResponse], error) {
+func (r *registrationHandler) CreateRegistrationFlow(context.Context, *connect.Request[auth.CreateRegistrationFlowRequest]) (*connect.Response[auth.CreateRegistrationFlowResponse], error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (r *registrationHandler) CompleteRegistrationFlow(ctx context.Context, req *connect.Request[auth.CompleteRegistrationFlowRequest]) (*connect.Response[auth.CompleteRegistrationFlowResponse], error) {
+func (r *registrationHandler) CompleteRegistrationFlow(context.Context, *connect.Request[auth.CompleteRegistrationFlowRequest]) (*connect.Response[auth.CompleteRegistrationFlowResponse], error) {
 	// TODO implement me
 	panic("implement me")
 }

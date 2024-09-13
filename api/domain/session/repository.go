@@ -5,5 +5,5 @@ import (
 )
 
 type Repository interface {
-	CreateSession(ctx context.Context, session Session) (Session, error)
+	CreateSession(ctx context.Context, session *Session) error
 }
