@@ -31,6 +31,42 @@ api:build:
   script:
     - go build ./...
 
+api:docker:
+  extends: .go
+  stage: build
+  needs: []
+  rules:
+    # If this is a commit pushed to default branch, tag latest to built docker image
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      variables:
+        TAG_LATEST: "1"
+    - when: on_success
+  image:
+    name: moby/buildkit:rootless
+    entrypoint: [ "sh", "-c" ]
+    docker:
+      user: "1000"
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+  before_script:
+    - mkdir ~/.docker
+    - export auth=$(echo -n "$CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD" | base64)
+    - 'echo "{\"auths\": {\"$CI_REGISTRY\": {\"auth\": \"$auth\"}}}" > ~/.docker/config.json'
+    - cd api
+  script:
+    - |
+      buildctl-daemonless.sh build \
+        --frontend gateway.v0 \
+        --opt source=docker/dockerfile \
+        --opt platform=linux/amd64,linux/arm64 \
+        --local context=. \
+        --local dockerfile=. \
+        --secret id=netrc,src=$BUF_NETRC \
+        --import-cache type=registry,ref=$CI_REGISTRY_IMAGE/api/cache \
+        --export-cache type=registry,ref=$CI_REGISTRY_IMAGE/api/cache \
+        --output type=image,name=$CI_REGISTRY_IMAGE/api:$CI_COMMIT_SHORT_SHA,push=true \
+        ${TAG_LATEST:+--output type=image,name=$CI_REGISTRY_IMAGE/api:latest,push=true}
+
 api:lint:
   extends:
     - .api

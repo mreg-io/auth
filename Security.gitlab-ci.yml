@@ -2,6 +2,7 @@ include:
   - template: Jobs/Dependency-Scanning.latest.gitlab-ci.yml
   - template: Jobs/SAST.latest.gitlab-ci.yml
   - template: Jobs/Secret-Detection.latest.gitlab-ci.yml
+  - template: Jobs/Container-Scanning.latest.gitlab-ci.yml
 
 # Always run GitLab security in amd64 Docker runner
 .security:
@@ -37,3 +38,14 @@ secret_detection:
   extends:
     - .secret-analyzer  # GitLab's secret_detection extends
     - .security
+
+# Container scanning
+container_scanning:
+  extends:
+    - .security
+  needs: [ api:docker ]
+  variables:
+    GIT_STRATEGY: fetch
+    CI_APPLICATION_REPOSITORY: $CI_REGISTRY_IMAGE/api
+    CI_APPLICATION_TAG: $CI_COMMIT_SHORT_SHA
+    CS_DOCKERFILE_PATH: api/Dockerfile

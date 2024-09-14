@@ -1,0 +1,10 @@
+# Ignore everything
+*
+
+!*.go
+!go.sum
+!go.mod
+!*.sql
+
+# ...even if they are in subdirectories
+!*/
