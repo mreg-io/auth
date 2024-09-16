@@ -13,16 +13,18 @@
     - type=registry,ref=$CI_REGISTRY_IMAGE/api/cache
 
 include:
-  - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1.1
+  - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1
     inputs:
       <<: *api_buildkit_inputs
+      needs: []
       outputs:
         - type=image,name=$CI_REGISTRY_IMAGE/api:$CI_COMMIT_SHORT_SHA,push=true
-  - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1.1
+  - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1
     rules:
       - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     inputs:
       <<: *api_buildkit_inputs
+      needs: [api:test]
       outputs:
         - type=image,name=$CI_REGISTRY_IMAGE/api:$CI_COMMIT_SHORT_SHA,push=true
         - type=image,name=$CI_REGISTRY_IMAGE/api:latest,push=true

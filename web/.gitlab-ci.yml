@@ -1,5 +1,6 @@
 .web_buildkit_inputs: &web_buildkit_inputs
   job: web:docker
+  needs: []
   context: web
   dockerfile: web
   platforms:
@@ -11,12 +12,12 @@
     - type=registry,ref=$CI_REGISTRY_IMAGE/web/cache
 
 include:
-  - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1.1
+  - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1
     inputs:
       <<: *web_buildkit_inputs
       outputs:
         - type=image,name=$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA,push=true
-  - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1.1
+  - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1
     rules:
       - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     inputs:
