@@ -1,4 +1,4 @@
-.buildkit_common_inputs: &buildkit_common_inputs
+.api_buildkit_inputs: &api_buildkit_inputs
   job: api:docker
   context: api
   dockerfile: api
@@ -15,14 +15,14 @@
 include:
   - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1.1
     inputs:
-      <<: *buildkit_common_inputs
+      <<: *api_buildkit_inputs
       outputs:
         - type=image,name=$CI_REGISTRY_IMAGE/api:$CI_COMMIT_SHORT_SHA,push=true
   - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1.1
     rules:
       - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     inputs:
-      <<: *buildkit_common_inputs
+      <<: *api_buildkit_inputs
       outputs:
         - type=image,name=$CI_REGISTRY_IMAGE/api:$CI_COMMIT_SHORT_SHA,push=true
         - type=image,name=$CI_REGISTRY_IMAGE/api:latest,push=true

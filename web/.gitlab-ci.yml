@@ -1,3 +1,30 @@
+.web_buildkit_inputs: &web_buildkit_inputs
+  job: web:docker
+  context: web
+  dockerfile: web
+  platforms:
+    - linux/arm64
+    - linux/amd64
+  cache_from:
+    - type=registry,ref=$CI_REGISTRY_IMAGE/web/cache
+  cache_to:
+    - type=registry,ref=$CI_REGISTRY_IMAGE/web/cache
+
+include:
+  - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1.1
+    inputs:
+      <<: *web_buildkit_inputs
+      outputs:
+        - type=image,name=$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA,push=true
+  - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1.1
+    rules:
+      - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    inputs:
+      <<: *web_buildkit_inputs
+      outputs:
+        - type=image,name=$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA,push=true
+        - type=image,name=$CI_REGISTRY_IMAGE/web:latest,push=true
+
 .web:
   image: node:latest
   before_script:
