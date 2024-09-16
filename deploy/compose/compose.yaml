@@ -1,0 +1,87 @@
+name: auth
+
+services:
+  web:
+    image: registry.mreg.io/my-registry/auth/web:latest
+    restart: unless-stopped
+    build:
+      context: ../../web
+    # noinspection ComposeUnknownKeys
+    develop:
+      watch:
+        - path: ../../web
+          action: rebuild
+    depends_on:
+      - api
+    networks:
+      - api
+    ports:
+      - "3000:3000"
+
+  api:
+    image: registry.mreg.io/my-registry/auth/api:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "postgresql://$COCKROACH_USER:$COCKROACH_PASSWORD@db:26257/$COCKROACH_DATABASE?application_name=auth-server"
+      EXPIRE_INTERVAL: 2h
+    build:
+      context: ../../api
+      secrets:
+        - netrc
+    # noinspection ComposeUnknownKeys
+    develop:
+      watch:
+        - path: ../../api
+          action: rebuild
+    depends_on:
+      db:
+        condition: service_started
+      migration:
+        condition: service_completed_successfully
+    networks:
+      - api
+      - db
+    expose:
+      - 8080
+
+  db:
+    image: cockroachdb/cockroach:v24.2.1
+    restart: unless-stopped
+    command: start-single-node
+    environment:
+      COCKROACH_DATABASE: $COCKROACH_DATABASE
+      COCKROACH_USER: $COCKROACH_USER
+      COCKROACH_PASSWORD: $COCKROACH_PASSWORD
+    volumes:
+      - cockroach:/cockroach/cockroach-data
+    networks:
+      - db
+    expose:
+      - 26257
+
+  migration:
+    image: redgate/flyway
+    command: ["info", "migrate", "validate"]
+    restart: on-failure
+    environment:
+      FLYWAY_URL: "jdbc:postgresql://db:26257/$COCKROACH_DATABASE"
+      FLYWAY_USER: $COCKROACH_USER
+      FLYWAY_PASSWORD: $COCKROACH_PASSWORD
+    depends_on:
+      - db
+    networks:
+      - db
+    volumes:
+      - ../../migrations:/flyway/conf:ro
+      - ../../migrations/sql:/flyway/sql:ro
+
+networks:
+  db:
+  api:
+
+volumes:
+  cockroach:
+
+secrets:
+  netrc:
+    file: $HOME/.netrc
