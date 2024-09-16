@@ -32,9 +32,10 @@ func main() {
 
 	// Initialize repositories
 	sessionRepository := cockroachdb.NewSessionRepository(pool)
+	registrationFlowRepository := cockroachdb.NewRegistrationRepository(pool)
 
 	// Initialize services
-	registrationService := registration.NewService(sessionRepository)
+	registrationService := registration.NewService(sessionRepository, registrationFlowRepository)
 
 	// Initialize handlers
 	registrationHandler := connect.NewRegistrationHandler(registrationService)
