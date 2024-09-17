@@ -24,10 +24,9 @@ func (s *SessionTestSuite) TestGenerateCSRFToken() {
 	s.Require().NoError(err)
 
 	// Split the token to retrieve the message and MAC
-	parts := strings.Split(csrfContent, ".")
-	s.Require().Len(parts, 2, "Invalid CSRF token format")
-	messageMAC := []byte(parts[0])
-	message := []byte(parts[1])
+	lastDotIndex := strings.LastIndex(csrfContent, ".")
+	messageMAC := []byte(csrfContent[:lastDotIndex])
+	message := []byte(csrfContent[lastDotIndex+1:])
 
 	// Verify the CSRF token
 	s.True(VerifyCSRFToken(message, messageMAC), "CSRF token verification failed")

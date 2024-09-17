@@ -9,4 +9,5 @@ type Flow struct {
 	IssuedAt  time.Time
 	ExpiresAt time.Time
 	SessionID string
+	Interval  time.Duration
 }

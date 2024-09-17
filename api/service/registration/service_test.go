@@ -40,7 +40,8 @@ type serviceTestSuite struct {
 }
 
 func (s *serviceTestSuite) SetupSuite() {
-	s.T().Setenv("EXPIRE_INTERVAL", "2h")
+	s.T().Setenv("SESSION_EXPIRY_INTERVAL", "1h")
+	s.T().Setenv("REGISTRATION_EXPIRY_INTERVAL", "1h")
 	s.T().Setenv("CSRF_SECRET", "Wryyyyyyyy")
 	s.mockSessionRepository = new(mockSessionRepository)
 	s.mockFlowRepository = new(mockFlowRepository)
@@ -51,7 +52,11 @@ func (s *serviceTestSuite) TestCreateRegistrationFlow() {
 	IPAddress, _ := netip.ParseAddr("192.168.1.1")
 	userAgent := "Tor"
 	sessionID := "123456789"
-	interval, err := time.ParseDuration(os.Getenv("EXPIRE_INTERVAL"))
+	interval, err := time.ParseDuration(os.Getenv("SESSION_EXPIRY_INTERVAL"))
+	s.Require().NoError(err)
+	issuedAt, _ := time.Parse(time.UnixDate, "Wed Feb 25 11:06:39 PST 1069")
+	s.Require().NoError(err)
+	expiresAt, err := time.Parse(time.UnixDate, "Wed Feb 26 11:06:39 PST 2069")
 	s.Require().NoError(err)
 	sessionModel := &session.Session{
 		Active:                      true,
@@ -61,20 +66,20 @@ func (s *serviceTestSuite) TestCreateRegistrationFlow() {
 			{IPAddress: IPAddress, UserAgent: userAgent, GeoLocation: "(unimplemented)"}, // TODO ip2Geolocation
 		},
 	}
-	flow := &registration.Flow{SessionID: sessionID}
+	registrationInterval, err := time.ParseDuration(os.Getenv("REGISTRATION_EXPIRY_INTERVAL"))
+	s.Require().NoError(err)
+	flow := &registration.Flow{SessionID: sessionID, Interval: registrationInterval}
 	ctx := context.Background()
 	call1 := s.mockSessionRepository.
 		On("CreateSession", ctx, sessionModel).
 		Run(func(args mock.Arguments) {
 			sessionModel := args.Get(1).(*session.Session)
-			t, _ := time.Parse(time.UnixDate, "Wed Feb 25 11:06:39 PST 2069")
 			sessionModel.ID = "123456789"
-			sessionModel.ExpiresAt = t
+			sessionModel.IssuedAt = issuedAt
+			sessionModel.ExpiresAt = expiresAt
 		}).
 		Return(nil).
 		Once()
-	issuedAt, _ := time.Parse(time.UnixDate, "Wed Feb 25 11:06:39 PST 2069")
-	expiresAt, _ := time.Parse(time.UnixDate, "Wed Feb 26 11:06:39 PST 2069")
 
 	call2 := s.mockFlowRepository.
 		On("CreateFlow", ctx, flow).
@@ -82,7 +87,6 @@ func (s *serviceTestSuite) TestCreateRegistrationFlow() {
 			flow := args.Get(1).(*registration.Flow) // Extract the flow from arguments
 			flow.FlowID = "987654321"                // Set FlowID
 			flow.IssuedAt = issuedAt                 // Set IssuedAt
-			flow.ExpiresAt = expiresAt
 		}).
 		Return(nil).
 		Once()
