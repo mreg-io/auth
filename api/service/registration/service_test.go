@@ -54,7 +54,7 @@ func (s *serviceTestSuite) TestCreateRegistrationFlow() {
 	sessionID := "123456789"
 	interval, err := time.ParseDuration(os.Getenv("SESSION_EXPIRY_INTERVAL"))
 	s.Require().NoError(err)
-	issuedAt, _ := time.Parse(time.UnixDate, "Wed Feb 25 11:06:39 PST 1069")
+	issuedAt, err := time.Parse(time.UnixDate, "Wed Feb 25 11:06:39 PST 1069")
 	s.Require().NoError(err)
 	expiresAt, err := time.Parse(time.UnixDate, "Wed Feb 26 11:06:39 PST 2069")
 	s.Require().NoError(err)
@@ -102,9 +102,7 @@ func (s *serviceTestSuite) TestCreateRegistrationFlow() {
 	csrfContent, err := sessionModel.GetCSRFToken()
 	s.Require().NoError(err)
 	parts := strings.Split(csrfContent, ".")
-	messageMAC := []byte(parts[0])
-	message := []byte(parts[1])
-	s.True(session.VerifyCSRFToken(message, messageMAC))
+	s.True(session.VerifyCSRFToken(parts[1], parts[0]))
 
 	// Reset mock
 	call1.Unset()

@@ -25,11 +25,9 @@ func (s *SessionTestSuite) TestGenerateCSRFToken() {
 
 	// Split the token to retrieve the message and MAC
 	lastDotIndex := strings.LastIndex(csrfContent, ".")
-	messageMAC := []byte(csrfContent[:lastDotIndex])
-	message := []byte(csrfContent[lastDotIndex+1:])
 
 	// Verify the CSRF token
-	s.True(VerifyCSRFToken(message, messageMAC), "CSRF token verification failed")
+	s.True(VerifyCSRFToken(csrfContent[lastDotIndex+1:], csrfContent[:lastDotIndex]), "CSRF token verification failed")
 }
 
 func TestSessionTestSuite(t *testing.T) {

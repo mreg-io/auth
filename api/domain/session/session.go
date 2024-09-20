@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"log"
 	"math"
 	"math/big"
@@ -52,12 +53,14 @@ func (s *Session) generateCSRFToken() error {
 	mac := hmac.New(sha256.New, csrfKey)
 	mac.Write(message) // Generate the HMAC hash
 	macBytes := mac.Sum(nil)
-	csrfToken := string(macBytes) + "." + string(message) // Combine HMAC hash with message to generate the token. The plain message is required to later authenticate it against its HMAC hash
+	csrfToken := base64.StdEncoding.EncodeToString(macBytes) + "." + base64.StdEncoding.EncodeToString(message) // Combine HMAC hash with message to generate the token. The plain message is required to later authenticate it against its HMAC hash
 	s.csrfToken = csrfToken
 	return nil
 }
 
-func VerifyCSRFToken(message, messageMAC []byte) bool {
+func VerifyCSRFToken(messageToken, messageMACToken string) bool {
+	message, _ := base64.StdEncoding.DecodeString(messageToken)
+	messageMAC, _ := base64.StdEncoding.DecodeString(messageMACToken)
 	mac := hmac.New(sha256.New, csrfKey)
 	mac.Write(message)
 	expectedMAC := mac.Sum(nil)

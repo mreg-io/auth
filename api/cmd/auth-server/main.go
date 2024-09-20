@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -53,6 +54,6 @@ func main() {
 		"localhost:8080",
 		h2c.NewHandler(mux, &http2.Server{}),
 	); err != nil {
-		log.Fatalf("Server failed: %v", err)
+		panic(fmt.Sprintf("Server failed: %v", err))
 	}
 }
