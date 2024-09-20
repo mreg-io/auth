@@ -51,7 +51,7 @@ func main() {
 	mux.Handle(authConnect.NewRegistrationServiceHandler(registrationHandler))
 
 	if err := http.ListenAndServe(
-		"localhost:8080",
+		"0.0.0.0:8080",
 		h2c.NewHandler(mux, &http2.Server{}),
 	); err != nil {
 		panic(fmt.Sprintf("Server failed: %v", err))

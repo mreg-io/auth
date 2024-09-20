@@ -23,7 +23,9 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: "postgresql://$COCKROACH_USER:$COCKROACH_PASSWORD@db:26257/$COCKROACH_DATABASE?application_name=auth-server"
-      EXPIRE_INTERVAL: 2h
+      SESSION_EXPIRY_INTERVAL: 2h
+      REGISTRATION_EXPIRY_INTERVAL: 2h
+      CSRF_SECRET: $CSRF_SECRET
     build:
       context: ../../api
       secrets:
@@ -43,6 +45,8 @@ services:
       - db
     expose:
       - 8080
+    ports:
+      - "8080:8080"
 
   db:
     image: cockroachdb/cockroach:v24.2.1
@@ -58,6 +62,8 @@ services:
       - db
     expose:
       - 26257
+    ports:
+      - "26257:26257"
 
   migration:
     image: redgate/flyway
