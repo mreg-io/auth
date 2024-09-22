@@ -61,7 +61,7 @@ func (r *registrationHandler) CreateRegistrationFlow(ctx context.Context, req *c
 		},
 	}
 	cookie := &http.Cookie{
-		Name:     "__Host-session_id",
+		Name:     "session_id",
 		Value:    session.ID,
 		Expires:  session.ExpiresAt,
 		Path:     "/",

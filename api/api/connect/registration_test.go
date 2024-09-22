@@ -88,7 +88,7 @@ func (h *handlerTestSuite) TestCreateRegistrationFlow() {
 	h.Require().Equal(message.GetRegistrationFlow().GetExpiresAt().AsTime(), flowExpiresTime)
 	h.Require().NotEmpty(message.GetRegistrationFlow().GetEtag())
 	realCookie := &http.Cookie{
-		Name:     "__Host-session_id",
+		Name:     "session_id",
 		Value:    "c2e577de-2fbc-4fa4-8dcd-321a960ebb36",
 		Expires:  sessionExpiresTime,
 		Path:     "/",
