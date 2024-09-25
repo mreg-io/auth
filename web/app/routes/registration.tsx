@@ -53,7 +53,7 @@ export default function Registration() {
 
   return (
     <>
-      <div className="container relative h-[800px] flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
+      <div className="container relative h-full flex-col items-center justify-center grid md:max-w-none lg:grid-cols-2 lg:px-0">
         <Link
           to="/login"
           className={cn(
