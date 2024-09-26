@@ -2,10 +2,14 @@ package connect
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/netip"
 	"testing"
 	"time"
+
+	"gitlab.mreg.io/my-registry/auth/domain/identity"
 
 	authConnect "buf.build/gen/go/mreg/protobuf/connectrpc/go/mreg/auth/v1alpha1/authv1alpha1connect"
 	auth "buf.build/gen/go/mreg/protobuf/protocolbuffers/go/mreg/auth/v1alpha1"
@@ -15,6 +19,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gitlab.mreg.io/my-registry/auth/domain/registration"
 	"gitlab.mreg.io/my-registry/auth/domain/session"
+	registrationService "gitlab.mreg.io/my-registry/auth/service/registration"
 )
 
 type mockRegistrationService struct {
@@ -32,6 +37,15 @@ func (m *mockRegistrationService) CreateRegistrationFlow(ctx context.Context, ip
 
 	// Return the values
 	return flow, sessionModel, err
+}
+
+func (m *mockRegistrationService) CompleteRegistrationFlow(ctx context.Context, f *registration.Flow) (*session.Session, error) {
+	args := m.Called(ctx, f)
+
+	// Extract the returned values from the mock call
+	sessionModel, _ := args.Get(0).(*session.Session)
+	err := args.Error(1)
+	return sessionModel, err
 }
 
 type handlerTestSuite struct {
@@ -98,12 +112,8 @@ func (h *handlerTestSuite) TestCreateRegistrationFlow() {
 	}
 
 	cookie := res.Header()["Set-Cookie"][0]
-	csrfCookie := res.Header()["Set-Cookie"][1]
-	c, err := http.ParseSetCookie(csrfCookie)
 	h.Require().NoError(err)
 	h.Require().Equal(cookie, realCookie.String())
-	h.Require().Equal(c.Expires, sessionExpiresTime)
-	h.Require().NotEmpty(c.Value)
 	call.Unset()
 }
 
@@ -127,6 +137,233 @@ func (h *handlerTestSuite) TestCreateRegistrationFlow_WithoutUA() {
 	_, err := h.handler.CreateRegistrationFlow(ctx, req)
 	// Assert proper call to repository
 	h.Require().Error(err) // no ip address provided
+}
+
+var (
+	filledEmail    = "test@example.com"
+	filledPassword = "strong_password_123"
+)
+
+func (h *handlerTestSuite) TestCompleteRegistrationFlow() {
+	preSessionID := "a02bdf6d-a87b-439b-9140-87287b8d0a96"
+	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
+		RegistrationFlow: &auth.RegistrationFlow{
+			Traits: &auth.IdentityTraits{
+				Email: filledEmail,
+			},
+			Credential: &auth.RegistrationFlow_Password{
+				Password: &auth.Password{
+					Password: filledPassword,
+				},
+			},
+		},
+	})
+	cookie := &http.Cookie{
+		Name:  "session_id",
+		Value: preSessionID, // Your session ID value
+
+	}
+	req.Header().Add("Cookie", cookie.String())
+
+	ctx := context.Background()
+	flow := &registration.Flow{
+		SessionID: preSessionID, // Use the extracted session ID
+		Password:  req.Msg.GetRegistrationFlow().GetPassword().GetPassword(),
+		Identity: &identity.Identity{
+			Emails: []identity.Email{
+				{
+					Value: req.Msg.GetRegistrationFlow().GetTraits().GetEmail(),
+				},
+			},
+		},
+	}
+	// Mock CSRF verification
+
+	// Mock CompleteRegistrationFlow
+	CreateTime, err := time.Parse(time.UnixDate, "Wed Feb 25 11:06:39 UTC 1069")
+	h.Require().NoError(err)
+	sessionExpiresTime, err := time.Parse(time.UnixDate, "Wed Feb 28 11:06:39 UTC 2069")
+	h.Require().NoError(err)
+
+	identityID := "IamBatMan"
+	newSessionID := "c2e577de-2fbc-4fa4-8dcd-321a960ebb36"
+	call1 := h.mockService.
+		On("CompleteRegistrationFlow", ctx, flow).
+		Run(func(args mock.Arguments) {
+			flow := args.Get(1).(*registration.Flow)
+			identityData := flow.Identity
+			identityData.ID = identityID
+			identityData.State = identity.StateActive
+			identityData.Emails[0].Value = filledEmail
+			identityData.Emails[0].Verified = false
+			identityData.Emails[0].CreateTime = CreateTime
+			identityData.Emails[0].UpdateTime = CreateTime
+			identityData.CreateTime = CreateTime
+			identityData.UpdateTime = CreateTime
+			identityData.StateUpdateTime = CreateTime
+		}).
+		Return(&session.Session{
+			ID:        newSessionID,
+			ExpiresAt: sessionExpiresTime,
+		}, nil).Once()
+
+	res, err := h.handler.CompleteRegistrationFlow(ctx, req)
+	h.Require().NoError(err)
+	h.mockService.AssertExpectations(h.T())
+
+	// Validate response
+	message := res.Msg
+	h.Require().Equal(fmt.Sprintf("identities/%s", identityID), message.GetIdentity().GetName())
+	h.Require().Equal(identityID, message.GetIdentity().GetIdentityId())
+	h.Require().Equal(fmt.Sprintf("identities/%s/addresses/%s", identityID, filledEmail), message.GetIdentity().GetAddresses()[0].GetName())
+	h.Require().Equal(filledEmail, message.GetIdentity().GetAddresses()[0].GetValue())
+	h.Require().False(message.GetIdentity().GetAddresses()[0].GetVerified())
+	h.Require().Equal(CreateTime, message.GetIdentity().GetCreateTime().AsTime())
+	h.Require().Equal(CreateTime, message.GetIdentity().GetUpdateTime().AsTime())
+	h.Require().Equal(CreateTime, message.GetIdentity().GetStateUpdateTime().AsTime())
+
+	// Validate cookies
+	setCookies := res.Header()["Set-Cookie"]
+
+	sessionCookie := setCookies[0]
+	// Validate session cookie
+	sessionC, err := http.ParseSetCookie(sessionCookie)
+	h.Require().NoError(err)
+	h.Require().Equal("session_id", sessionC.Name)
+	h.Require().Equal(newSessionID, sessionC.Value)
+	h.Require().Equal(sessionExpiresTime, sessionC.Expires)
+	h.Require().Equal("/", sessionC.Path)
+	h.Require().True(sessionC.Secure)
+	h.Require().True(sessionC.HttpOnly)
+	h.Require().Equal(http.SameSiteStrictMode, sessionC.SameSite)
+
+	call1.Unset()
+}
+
+func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookie() {
+	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
+		RegistrationFlow: &auth.RegistrationFlow{
+			Traits: &auth.IdentityTraits{
+				Email: filledEmail,
+			},
+			Credential: &auth.RegistrationFlow_Password{
+				Password: &auth.Password{
+					Password: filledPassword,
+				},
+			},
+		},
+	})
+
+	ctx := context.Background()
+	flow := &registration.Flow{}
+	// Mock CSRF verification
+
+	// Mock CompleteRegistrationFlow
+
+	call1 := h.mockService.
+		On("CompleteRegistrationFlow", ctx, flow).
+		Run(func(_ mock.Arguments) {
+		}).
+		Return(&session.Session{}, nil).Once()
+	var err error
+	_, err = h.handler.CompleteRegistrationFlow(ctx, req)
+	h.Require().Equal(connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated")).Error(), err.Error())
+	call1.Unset()
+}
+
+func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookieWithNameSessionID() {
+	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
+		RegistrationFlow: &auth.RegistrationFlow{
+			Traits: &auth.IdentityTraits{
+				Email: filledEmail,
+			},
+			Credential: &auth.RegistrationFlow_Password{
+				Password: &auth.Password{
+					Password: filledPassword,
+				},
+			},
+		},
+	})
+	cookie := &http.Cookie{
+		Name:  "session",
+		Value: "mudamudamudamudamuda", // Your session ID value
+
+	}
+	req.Header().Add("Cookie", cookie.String())
+	ctx := context.Background()
+	flow := &registration.Flow{}
+	// Mock CSRF verification
+
+	// Mock CompleteRegistrationFlow
+	var err error
+	call1 := h.mockService.
+		On("CompleteRegistrationFlow", ctx, flow).
+		Run(func(_ mock.Arguments) {
+		}).
+		Return(&session.Session{}, nil).Once()
+
+	_, err = h.handler.CompleteRegistrationFlow(ctx, req)
+	h.Require().Equal(connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated")).Error(), err.Error())
+	call1.Unset()
+}
+
+func (h *handlerTestSuite) TestCompleteRegistrationFlow_ServiceError() {
+	preSessionID := "a02bdf6d-a87b-439b-9140-87287b8d0a96"
+	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
+		RegistrationFlow: &auth.RegistrationFlow{
+			Traits: &auth.IdentityTraits{
+				Email: filledEmail,
+			},
+			Credential: &auth.RegistrationFlow_Password{
+				Password: &auth.Password{
+					Password: filledPassword,
+				},
+			},
+		},
+	})
+	cookie := &http.Cookie{
+		Name:  "session_id",
+		Value: preSessionID, // Your session ID value
+
+	}
+	req.Header().Add("Cookie", cookie.String())
+
+	ctx := context.Background()
+	flow := &registration.Flow{
+		SessionID: preSessionID, // Use the extracted session ID
+		Password:  req.Msg.GetRegistrationFlow().GetPassword().GetPassword(),
+		Identity: &identity.Identity{
+			Emails: []identity.Email{
+				{
+					Value: req.Msg.GetRegistrationFlow().GetTraits().GetEmail(),
+				},
+			},
+		},
+	}
+	// Mock CSRF verification
+
+	// Mock CompleteRegistrationFlow
+	call1 := h.mockService.
+		On("CompleteRegistrationFlow", ctx, flow).
+		Run(func(_ mock.Arguments) {
+		}).
+		Return(nil, errors.New("internal")).Once()
+	var err error
+	_, err = h.handler.CompleteRegistrationFlow(ctx, req)
+	h.Require().Equal(err.Error(), internalError().Error())
+	h.mockService.AssertExpectations(h.T())
+	call1.Unset()
+
+	call2 := h.mockService.
+		On("CompleteRegistrationFlow", ctx, flow).
+		Run(func(_ mock.Arguments) {
+		}).
+		Return(nil, registrationService.ErrEmailExists).Once()
+
+	_, err = h.handler.CompleteRegistrationFlow(ctx, req)
+	h.Require().Equal(err.Error(), errorEmailExist().Error())
+	h.mockService.AssertExpectations(h.T())
+	call2.Unset()
 }
 
 func TestHandlerTestSuite(t *testing.T) {

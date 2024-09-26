@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/netip"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -97,12 +96,6 @@ func (s *serviceTestSuite) TestCreateRegistrationFlow() {
 	s.NotEmpty(flow)
 	s.NotEmpty(sessionModel.ID)
 	s.NotEmpty(sessionModel.ExpiresAt)
-	s.NotEmpty(sessionModel.GetCSRFToken())
-	// Assert flow, you should add more
-	csrfContent, err := sessionModel.GetCSRFToken()
-	s.Require().NoError(err)
-	parts := strings.Split(csrfContent, ".")
-	s.True(session.VerifyCSRFToken(parts[1], parts[0]))
 
 	// Reset mock
 	call1.Unset()

@@ -12,6 +12,7 @@ import (
 
 type Service interface {
 	CreateRegistrationFlow(ctx context.Context, ipAddress netip.Addr, userAgent string) (*registration.Flow, *session.Session, error)
+	CompleteRegistrationFlow(context.Context, *registration.Flow) (*session.Session, error)
 }
 
 type service struct {
@@ -50,4 +51,9 @@ func (s *service) CreateRegistrationFlow(ctx context.Context, ipAddress netip.Ad
 		return nil, nil, err
 	}
 	return flow, sessionModel, nil
+}
+
+func (s *service) CompleteRegistrationFlow(context.Context, *registration.Flow) (*session.Session, error) {
+	// TODO: Implement me
+	panic("Not implemented")
 }

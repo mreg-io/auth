@@ -7,6 +7,8 @@ import (
 	"hash/crc32"
 	"strconv"
 	"time"
+
+	"gitlab.mreg.io/my-registry/auth/domain/identity"
 )
 
 type Flow struct {
@@ -14,7 +16,9 @@ type Flow struct {
 	IssuedAt  time.Time
 	ExpiresAt time.Time
 	SessionID string
+	Password  string
 	Interval  time.Duration
+	Identity  *identity.Identity
 }
 
 var crcTable = crc32.MakeTable(crc32.IEEE)

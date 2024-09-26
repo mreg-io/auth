@@ -6,13 +6,17 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	authConnect "buf.build/gen/go/mreg/protobuf/connectrpc/go/mreg/auth/v1alpha1/authv1alpha1connect"
+	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
+	"connectrpc.com/validate"
+
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
-	"gitlab.mreg.io/my-registry/auth/api/connect"
+	apiConnect "gitlab.mreg.io/my-registry/auth/api/connect"
 	"gitlab.mreg.io/my-registry/auth/infrastructure/cockroachdb"
 	"gitlab.mreg.io/my-registry/auth/service/registration"
 )
@@ -39,7 +43,7 @@ func main() {
 	registrationService := registration.NewService(sessionRepository, registrationFlowRepository)
 
 	// Initialize handlers
-	registrationHandler := connect.NewRegistrationHandler(registrationService)
+	registrationHandler := apiConnect.NewRegistrationHandler(registrationService)
 
 	// Create ConnectRPC server
 	mux := http.NewServeMux()
@@ -48,12 +52,23 @@ func main() {
 	)
 	mux.Handle(grpcreflect.NewHandlerV1(reflector))
 	mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector))
-	mux.Handle(authConnect.NewRegistrationServiceHandler(registrationHandler))
 
-	if err := http.ListenAndServe(
-		"0.0.0.0:8080",
-		h2c.NewHandler(mux, &http2.Server{}),
-	); err != nil {
+	interceptor, err := validate.NewInterceptor()
+	if err != nil {
+		panic(fmt.Sprintf("NewInterceptor failed: %v", err))
+	}
+
+	mux.Handle(authConnect.NewRegistrationServiceHandler(registrationHandler, connect.WithInterceptors(interceptor)))
+	server := &http.Server{
+		Addr:           "0.0.0.0:8080",
+		Handler:        h2c.NewHandler(mux, &http2.Server{}), // Enable HTTP/2 over cleartext (H2C)
+		MaxHeaderBytes: 8192,                                 // Limit header size to 8 KB
+		ReadTimeout:    2 * time.Second,
+		WriteTimeout:   5 * time.Second,
+	}
+
+	// Start the server
+	if err := server.ListenAndServe(); err != nil {
 		panic(fmt.Sprintf("Server failed: %v", err))
 	}
 }

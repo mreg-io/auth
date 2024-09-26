@@ -24,3 +24,6 @@ go.work
 # Jetbrains IDEA
 .idea
 *.env
+
+# golangci-lint run
+gl-code-quality-report.json
