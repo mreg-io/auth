@@ -1,9 +1,9 @@
 import { Form, Link, useNavigation } from "@remix-run/react";
 import { cn } from "~/lib/utils";
-import { Button, buttonVariants } from "~/components/ui/button";
-import { Label } from "~/components/ui/label";
-import { Input } from "~/components/ui/input";
-import { Icons } from "~/components/icons";
+import { Button, buttonVariants } from "~/components/shadcn/button";
+import { Label } from "~/components/shadcn/label";
+import { Input } from "~/components/shadcn/input";
+import { Icons } from "~/components/shadcn/icons";
 import {
   ActionFunctionArgs,
   LoaderFunctionArgs,
