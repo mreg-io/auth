@@ -11,6 +11,7 @@ import { LinksFunction } from "@remix-run/node";
 import { ReactNode } from "react";
 import { Internal, NotFound } from "~/components/errors";
 import styles from "./tailwind.css?url";
+import { Toaster } from "~/components/shadcn/toaster";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: styles }];
 
@@ -27,6 +28,7 @@ function Layout({ children, title }: LayoutProps) {
         <Links />
       </head>
       <body>
+        <Toaster />
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -60,7 +62,10 @@ export function ErrorBoundary() {
           </Layout>
         );
     }
-  } else {
-    return <h1 className="text-lg">Internal Server Error</h1>;
   }
+  return (
+    <Layout title="Error">
+      <Internal />
+    </Layout>
+  );
 }

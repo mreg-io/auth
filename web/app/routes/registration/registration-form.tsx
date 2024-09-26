@@ -1,56 +1,24 @@
-import { Form, Link, useNavigation } from "@remix-run/react";
+import { ReactNode } from "react";
+import { Form, Link } from "@remix-run/react";
 import { cn } from "~/lib/utils";
 import { Button, buttonVariants } from "~/components/shadcn/button";
 import { Label } from "~/components/shadcn/label";
 import { Input } from "~/components/shadcn/input";
 import { Icons } from "~/components/shadcn/icons";
-import {
-  ActionFunctionArgs,
-  LoaderFunctionArgs,
-  MetaFunction,
-} from "@remix-run/node";
-import { registrationService } from "~/lib/connect.server";
-import { useEffect, useState } from "react";
-import { parseCookie } from "~/lib/cookie";
-import { CreateRegistrationFlowResponse } from "@buf/mreg_protobuf.bufbuild_es/mreg/auth/v1alpha1/registration_service_pb";
-import { protobuf, useLoaderProtobuf } from "~/lib/protobuf";
 
-export const meta: MetaFunction = () => [
-  { title: "Create an Account | My Registry" },
-];
-
-export async function loader({ request }: LoaderFunctionArgs) {
-  const { response, headers } =
-    await registrationService.createRegistrationFlow(
-      {},
-      {
-        headers: {
-          "X-Forwarded-For": "0.0.0.0",
-          "User-Agent": request.headers.get("User-Agent")!,
-        },
-      }
-    );
-
-  return protobuf(response, { headers });
+export interface RegistrationFormProps {
+  loading?: boolean;
+  disabled?: boolean;
+  csrfToken?: string;
+  children?: ReactNode;
 }
 
-export async function action({ request }: ActionFunctionArgs) {
-  const data = Object.fromEntries(await request.formData());
-  console.log(data);
-  return null;
-}
-
-export default function Registration() {
-  const flow = useLoaderProtobuf(CreateRegistrationFlowResponse);
-  const { formAction } = useNavigation();
-  const isSubmitting = formAction === "/registration";
-
-  const [csrfToken, setCsrfToken] = useState<string>();
-  useEffect(() => {
-    const cookies = parseCookie();
-    setCsrfToken(cookies.get("csrf_token"));
-  }, []);
-
+export default function RegistrationForm({
+  loading,
+  disabled,
+  csrfToken,
+  children,
+}: RegistrationFormProps) {
   return (
     <>
       <div className="container relative h-full flex-col items-center justify-center grid md:max-w-none lg:grid-cols-2 lg:px-0">
@@ -102,8 +70,8 @@ export default function Registration() {
               </p>
             </div>
             <div className={cn("grid gap-6")}>
-              <Form method="POST" action="/registration">
-                <fieldset className="grid gap-4" disabled={isSubmitting}>
+              <Form method="POST" action="/registration/route">
+                <fieldset className="grid gap-4" disabled={disabled}>
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -131,23 +99,14 @@ export default function Registration() {
                       autoCorrect="off"
                     />
                   </div>
-                  <input
-                    name="flow-name"
-                    className="hidden"
-                    defaultValue={flow.registrationFlow?.name}
-                  />
-                  <input
-                    name="flow-etag"
-                    className="hidden"
-                    defaultValue={flow.registrationFlow?.etag}
-                  />
+                  {children}
                   <input
                     name="csrf-token"
                     className="hidden"
                     defaultValue={csrfToken}
                   />
                   <Button type="submit">
-                    {isSubmitting && (
+                    {loading && (
                       <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
                     )}
                     Sign Up
