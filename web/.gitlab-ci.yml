@@ -61,16 +61,21 @@ web:build:
   script:
     - pnpm build
 
-#web:lint:
-#  extends: .web
-#  stage: test
-#  needs: [web:dep]
-#  script:
-#    - pnpm lint
-#
-#web:format:
-#  extends: .web
-#  stage: test
-#  needs: [web:dep]
-#  script:
-#    - pnpm format:ci
+web:lint:
+  extends: .web
+  stage: test
+  needs: [web:dep]
+  variables:
+    ESLINT_CODE_QUALITY_REPORT: gl-code-quality-report.json
+  script:
+    - pnpm lint
+  artifacts:
+    reports:
+      codequality: web/gl-code-quality-report.json
+
+web:format:
+  extends: .web
+  stage: test
+  needs: [web:dep]
+  script:
+    - pnpm format -c

@@ -8,7 +8,7 @@ import { useLoaderData } from "@remix-run/react";
 
 export function protobuf<T extends Message<T> = AnyMessage>(
   message: Message<T>,
-  init?: ResponseInit
+  init?: ResponseInit,
 ) {
   const headers = new Headers(init?.headers);
   headers.set("Content-Type", "application/octet-stream");
@@ -19,7 +19,7 @@ export function protobuf<T extends Message<T> = AnyMessage>(
 }
 
 export function useLoaderProtobuf<T extends Message<T> = AnyMessage>(
-  ProtobufMessage: MessageType<T>
+  ProtobufMessage: MessageType<T>,
 ) {
   return new ProtobufMessage().fromBinary(protoBase64.dec(useLoaderData()));
 }

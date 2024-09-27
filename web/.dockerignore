@@ -135,6 +135,6 @@ dist
 /public/build
 
 ### Project-specific files
-.eslintrc.cjs
+eslint.config.js
 Dockerfile
 README.md

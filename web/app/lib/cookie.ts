@@ -3,6 +3,6 @@ export function parseCookie() {
     document.cookie.split("; ").map((v) => {
       const [key, ...val] = v.split(/=(.*)/s);
       return [decodeURIComponent(key), decodeURIComponent(val.join("="))];
-    })
+    }),
   );
 }

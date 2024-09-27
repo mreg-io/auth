@@ -22,9 +22,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       {
         headers: {
           "X-Forwarded-For": "0.0.0.0",
-          "User-Agent": request.headers.get("User-Agent")!,
+          "User-Agent": request.headers.get("User-Agent") ?? "",
         },
-      }
+      },
     );
   const csrfToken = generateCSRFTokenFromHeaders(headers);
 
@@ -33,7 +33,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       response,
       csrfToken,
     },
-    { headers }
+    { headers },
   );
 };
 

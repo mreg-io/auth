@@ -15,7 +15,10 @@ import { Toaster } from "~/components/shadcn/toaster";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: styles }];
 
-type LayoutProps = { children: ReactNode; title?: string };
+interface LayoutProps {
+  children: ReactNode;
+  title?: string;
+}
 
 function Layout({ children, title }: LayoutProps) {
   return (

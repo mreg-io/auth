@@ -19,7 +19,9 @@ export function NotFound() {
   );
 }
 
-export type InternalProps = { status?: number };
+export interface InternalProps {
+  status?: number;
+}
 
 export function Internal({ status }: InternalProps) {
   return (

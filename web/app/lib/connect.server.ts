@@ -11,12 +11,12 @@ const transport = createGrpcTransport({
       "grpc-accept-encoding",
       "grpc-encoding",
       "Content-Type",
-      "Date"
+      "Date",
     ),
   ],
 });
 
 export const registrationService = createPromiseClient(
   RegistrationService,
-  transport
+  transport,
 );
