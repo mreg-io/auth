@@ -130,8 +130,11 @@ dist
 .pnp.*
 
 ### Remix template
-node_modules
 /.cache
 /build
 /public/build
 
+### Project-specific files
+.eslintrc.cjs
+Dockerfile
+README.md

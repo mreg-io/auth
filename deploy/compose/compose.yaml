@@ -6,11 +6,16 @@ services:
     restart: unless-stopped
     build:
       context: ../../web
+      secrets:
+        - npmrc
     # noinspection ComposeUnknownKeys
     develop:
       watch:
         - path: ../../web
           action: rebuild
+    environment:
+      AUTH_API_URL: http://api:8080/
+      CSRF_TOKEN_SECRET: $CSRF_TOKEN_SECRET
     depends_on:
       - api
     networks:
@@ -25,7 +30,6 @@ services:
       DATABASE_URL: "postgresql://$COCKROACH_USER:$COCKROACH_PASSWORD@db:26257/$COCKROACH_DATABASE?application_name=auth-server"
       SESSION_EXPIRY_INTERVAL: 2h
       REGISTRATION_EXPIRY_INTERVAL: 2h
-      CSRF_SECRET: $CSRF_SECRET
     build:
       context: ../../api
       secrets:
@@ -91,3 +95,5 @@ volumes:
 secrets:
   netrc:
     file: $HOME/.netrc
+  npmrc:
+    file: $HOME/.npmrc

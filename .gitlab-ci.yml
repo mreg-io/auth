@@ -48,10 +48,10 @@ include:
     rules:
       - changes: [ api/**/* ]
       - *run_all_rules
-#  - local: web/.gitlab-ci.yml
-#    rules:
-#      - changes: [ web/**/* ]
-#      - *run_all_rules
+  - local: web/.gitlab-ci.yml
+    rules:
+      - changes: [ web/**/* ]
+      - *run_all_rules
   - local: Security.gitlab-ci.yml
     rules:
       - *run_all_rules

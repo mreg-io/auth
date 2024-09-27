@@ -1,0 +1,76 @@
+.web_buildkit_inputs: &web_buildkit_inputs
+  job: web:docker
+  needs: []
+  context: web
+  dockerfile: web
+  platforms:
+    - linux/arm64
+    - linux/amd64
+  secrets:
+    - id=npmrc,src=$BUF_NPMRC
+  cache_from:
+    - type=registry,ref=$CI_REGISTRY_IMAGE/web/cache
+  cache_to:
+    - type=registry,ref=$CI_REGISTRY_IMAGE/web/cache
+
+include:
+  - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1
+    inputs:
+      <<: *web_buildkit_inputs
+      outputs:
+        - type=image,name=$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA,push=true
+  - component: $CI_SERVER_FQDN/my-registry/components/buildkit/build-push@0.1
+    rules:
+      - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    inputs:
+      <<: *web_buildkit_inputs
+      outputs:
+        - type=image,name=$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA,push=true
+        - type=image,name=$CI_REGISTRY_IMAGE/web:latest,push=true
+
+.web:
+  image: node:latest
+  before_script:
+    - cat $BUF_NPMRC > $HOME/.npmrc
+    # pnpm config
+    - corepack enable
+    - corepack prepare pnpm@latest-9 --activate
+    - cd web
+    - pnpm config set store-dir .pnpm-store
+    - pnpm install
+  cache:
+    key:
+      files:
+        - web/pnpm-lock.yaml
+    paths:
+      - web/.pnpm-store
+    policy: pull
+
+web:dep:
+  extends: .web
+  stage: .pre
+  script:
+    - pnpm list
+  cache:
+    policy: pull-push
+
+web:build:
+  extends: .web
+  stage: build
+  needs: [web:dep]
+  script:
+    - pnpm build
+
+#web:lint:
+#  extends: .web
+#  stage: test
+#  needs: [web:dep]
+#  script:
+#    - pnpm lint
+#
+#web:format:
+#  extends: .web
+#  stage: test
+#  needs: [web:dep]
+#  script:
+#    - pnpm format:ci
