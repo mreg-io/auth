@@ -22,8 +22,8 @@ dependency_scanning:
     - !reference [.go, before_script]
 
 # Override gemnasium-dependency_scanning image
-gemnasium-dependency_scanning:
-  image: registry.mreg.io/danny900714/gemnasium:latest
+#gemnasium-dependency_scanning:
+#  image: registry.mreg.io/danny900714/gemnasium:latest
 
 # SAST
 sast:
@@ -42,10 +42,16 @@ secret_detection:
 # Container scanning
 container_scanning:
   extends:
+    - .container_scanning
     - .security
-  needs: [ api:docker ]
+  parallel:
+    matrix:
+      - COMPONENT: ["api", "web"]
+  needs:
+    - api:docker
+    - web:docker
   variables:
     GIT_STRATEGY: fetch
-    CI_APPLICATION_REPOSITORY: $CI_REGISTRY_IMAGE/api
+    CI_APPLICATION_REPOSITORY: $CI_REGISTRY_IMAGE/$COMPONENT
     CI_APPLICATION_TAG: $CI_COMMIT_SHORT_SHA
-    CS_DOCKERFILE_PATH: api/Dockerfile
+    CS_DOCKERFILE_PATH: $COMPONENT/Dockerfile
