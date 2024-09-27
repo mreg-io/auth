@@ -9,14 +9,12 @@ import { Icons } from "~/components/shadcn/icons";
 export interface RegistrationFormProps {
   loading?: boolean;
   disabled?: boolean;
-  csrfToken?: string;
   children?: ReactNode;
 }
 
 export default function RegistrationForm({
   loading,
   disabled,
-  csrfToken,
   children,
 }: RegistrationFormProps) {
   return (
@@ -100,11 +98,6 @@ export default function RegistrationForm({
                     />
                   </div>
                   {children}
-                  <input
-                    name="csrf-token"
-                    className="hidden"
-                    defaultValue={csrfToken}
-                  />
                   <Button type="submit">
                     {loading && (
                       <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
