@@ -3,30 +3,19 @@ import { parseString } from "set-cookie-parser";
 
 const CSRF_TOKEN_SECRET = process.env.CSRF_TOKEN_SECRET;
 
-export function generateCSRFToken(session: string | Headers) {
-  switch (typeof session) {
-    case "string":
-      return generateTokenFromID(session);
-    case "object":
-      return generateTokenFromHeaders(session);
-    default:
-      return "";
-  }
-}
-
-function generateTokenFromID(id: string) {
-  const message = `${id}!${randomUUID()}`;
+export function generateCSRFToken(sessionID: string) {
+  const message = `${sessionID}!${randomUUID()}`;
   const hmac = createHmac("sha256", CSRF_TOKEN_SECRET);
   hmac.update(message);
   return `${hmac.digest("base64")}.${Buffer.from(message).toString("base64")}`;
 }
 
-function generateTokenFromHeaders(headers: Headers) {
+export function generateCSRFTokenFromHeaders(headers: Headers) {
   let csrfToken = "";
   for (const setCookie of headers.getSetCookie()) {
     const cookie = parseString(setCookie);
     if (cookie.name === "session_id") {
-      csrfToken = generateTokenFromID(cookie.value);
+      csrfToken = generateCSRFToken(cookie.value);
     }
   }
   return csrfToken;

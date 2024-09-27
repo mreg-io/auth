@@ -9,8 +9,16 @@ export default defineConfig({
         v3_fetcherPersist: true,
         v3_relativeSplatPath: true,
         v3_throwAbortReason: true,
+        unstable_singleFetch: true,
       },
     }),
     tsconfigPaths(),
   ],
 });
+
+declare module "@remix-run/node" {
+  // or cloudflare, deno, etc.
+  interface Future {
+    unstable_singleFetch: true;
+  }
+}
