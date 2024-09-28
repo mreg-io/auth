@@ -50,12 +50,12 @@ func (r *registrationHandler) CreateRegistrationFlow(ctx context.Context, req *c
 	flow, sessionData, err := r.registrationService.CreateRegistrationFlow(ctx, clientIP, userAgent)
 	if err != nil {
 		fmt.Printf("error creating registration flow: %v\n", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New(""))
+		return nil, internalError()
 	}
 	eTag, err := flow.ETag()
 	if err != nil {
 		fmt.Printf("error generating etag in registration flow: %v\n", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New(""))
+		return nil, internalError()
 	}
 	res := &auth.CreateRegistrationFlowResponse{
 		RegistrationFlow: &auth.RegistrationFlow{
@@ -82,7 +82,9 @@ func (r *registrationHandler) CreateRegistrationFlow(ctx context.Context, req *c
 
 func (r *registrationHandler) CompleteRegistrationFlow(ctx context.Context, req *connect.Request[auth.CompleteRegistrationFlowRequest]) (*connect.Response[auth.CompleteRegistrationFlowResponse], error) {
 	// Extract and verify CSRF token from the request
-	cookie := req.Header().Get("Cookie")
+	headers := req.Header()
+
+	cookie := headers.Get("Cookie")
 	parsedCookies, err := http.ParseCookie(cookie)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
@@ -97,6 +99,23 @@ func (r *registrationHandler) CompleteRegistrationFlow(ctx context.Context, req 
 	if sessionID == "" {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 	}
+
+	userAgent := headers.Get("User-Agent")
+	xForwardedFor := headers.Get("X-Forwarded-For")
+
+	var clientIP netip.Addr
+	if userAgent == "" {
+		return nil, errorMissingHeader("User-Agent")
+	}
+	if xForwardedFor != "" {
+		clientIPString, _, _ := strings.Cut(xForwardedFor, ",")
+		clientIP, err = netip.ParseAddr(clientIPString)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+	} else {
+		return nil, errorMissingHeader("X-Forwarded-For")
+	}
 	flow := &registration.Flow{
 		SessionID: sessionID, // Use the extracted session ID
 		Password:  req.Msg.GetRegistrationFlow().GetPassword().GetPassword(),
@@ -106,11 +125,12 @@ func (r *registrationHandler) CompleteRegistrationFlow(ctx context.Context, req 
 					Value: req.Msg.GetRegistrationFlow().GetTraits().GetEmail(),
 				},
 			},
+			Timezone: req.Msg.GetRegistrationFlow().GetTraits().GetTimezone().String(),
 		},
 	}
 
 	// Complete the registration flow, handling potential errors
-	sessionData, err := r.registrationService.CompleteRegistrationFlow(ctx, flow)
+	sessionData, err := r.registrationService.CompleteRegistrationFlow(ctx, flow, clientIP, userAgent)
 	if err != nil {
 		switch {
 		case errors.Is(err, cockroachdb.ErrConstraint):

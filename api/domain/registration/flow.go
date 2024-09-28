@@ -47,3 +47,7 @@ func (f *Flow) ETag() (string, error) {
 	// Convert the checksum to a hexadecimal string
 	return fmt.Sprintf("W/\"%s\"", strconv.FormatUint(uint64(checksum), 16)), nil
 }
+
+func (f *Flow) IsExpired() bool {
+	return time.Now().After(f.ExpiresAt)
+}

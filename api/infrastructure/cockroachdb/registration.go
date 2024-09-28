@@ -28,3 +28,8 @@ func (r *RegistrationRepository) CreateFlow(ctx context.Context, flow *registrat
 		).
 		Scan(&flow.FlowID, &flow.IssuedAt, &flow.ExpiresAt)
 }
+
+func (r *RegistrationRepository) QueryFlow(context.Context, *registration.Flow) error {
+	// TODO: Implement me
+	panic("not implemented")
+}

@@ -55,6 +55,29 @@ func (f *FlowTestSuite) TestFlow_ETag_NoExpireAt() {
 	f.Require().Error(err)
 }
 
+func (f *FlowTestSuite) TestFlow_IsExpired() {
+	// Test case where the flow is not expired
+	notExpiredFlow := Flow{
+		ExpiresAt: time.Now().Add(1 * time.Hour), // Expires 1 hour from now
+	}
+
+	f.False(notExpiredFlow.IsExpired(), "Expected flow to not be expired, but it is marked as expired")
+
+	// Test case where the flow is expired
+	expiredFlow := Flow{
+		ExpiresAt: time.Now().Add(-1 * time.Hour), // Expired 1 hour ago
+	}
+
+	f.True(expiredFlow.IsExpired(), "Expected flow to be expired, but it is marked as not expired")
+
+	// Test case where the expiration time is exactly now (boundary test)
+	exactNowFlow := Flow{
+		ExpiresAt: time.Now(),
+	}
+
+	f.True(exactNowFlow.IsExpired(), "Expected flow to be expired when expiration time is exactly now, but it is marked as not expired")
+}
+
 func TestSessionTestSuite(t *testing.T) {
 	suite.Run(t, new(FlowTestSuite))
 }

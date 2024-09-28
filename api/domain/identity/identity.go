@@ -20,6 +20,7 @@ type Identity struct {
 	CreateTime      time.Time
 	UpdateTime      time.Time
 	StateUpdateTime time.Time
+	PasswordHash    string
 }
 
 func (i *Identity) ETag() (string, error) {

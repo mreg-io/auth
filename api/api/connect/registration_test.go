@@ -39,8 +39,8 @@ func (m *mockRegistrationService) CreateRegistrationFlow(ctx context.Context, ip
 	return flow, sessionModel, err
 }
 
-func (m *mockRegistrationService) CompleteRegistrationFlow(ctx context.Context, f *registration.Flow) (*session.Session, error) {
-	args := m.Called(ctx, f)
+func (m *mockRegistrationService) CompleteRegistrationFlow(ctx context.Context, f *registration.Flow, addr netip.Addr, s string) (*session.Session, error) {
+	args := m.Called(ctx, f, addr, s)
 
 	// Extract the returned values from the mock call
 	sessionModel, _ := args.Get(0).(*session.Session)
@@ -59,10 +59,16 @@ func (h *handlerTestSuite) SetupSuite() {
 	h.handler = NewRegistrationHandler(h.mockService)
 }
 
+var (
+	filledEmail    = "test@example.com"
+	filledPassword = "strong_password_123"
+	UA             = "pro-n-hub"
+	IP             = "192.0.2.43"
+	preSessionID   = "a02bdf6d-a87b-439b-9140-87287b8d0a96"
+)
+
 func (h *handlerTestSuite) TestCreateRegistrationFlow() {
 	req := connect.NewRequest[auth.CreateRegistrationFlowRequest](&auth.CreateRegistrationFlowRequest{})
-	UA := "pro-n-hub"
-	IP := "192.0.2.43"
 	req.Header().Set("User-Agent", UA)
 	req.Header().Set("X-Forwarded-For", IP)
 	ctx := context.Background()
@@ -119,7 +125,6 @@ func (h *handlerTestSuite) TestCreateRegistrationFlow() {
 
 func (h *handlerTestSuite) TestCreateRegistrationFlow_WithoutIP() {
 	req := connect.NewRequest[auth.CreateRegistrationFlowRequest](&auth.CreateRegistrationFlowRequest{})
-	UA := "pro-n-hub"
 	req.Header().Set("User-Agent", UA)
 	ctx := context.Background()
 
@@ -130,7 +135,6 @@ func (h *handlerTestSuite) TestCreateRegistrationFlow_WithoutIP() {
 
 func (h *handlerTestSuite) TestCreateRegistrationFlow_WithoutUA() {
 	req := connect.NewRequest[auth.CreateRegistrationFlowRequest](&auth.CreateRegistrationFlowRequest{})
-	IP := "192.0.2.43"
 	req.Header().Set("X-Forwarded-For", IP)
 	ctx := context.Background()
 
@@ -139,17 +143,11 @@ func (h *handlerTestSuite) TestCreateRegistrationFlow_WithoutUA() {
 	h.Require().Error(err) // no ip address provided
 }
 
-var (
-	filledEmail    = "test@example.com"
-	filledPassword = "strong_password_123"
-)
-
 func (h *handlerTestSuite) TestCompleteRegistrationFlow() {
-	preSessionID := "a02bdf6d-a87b-439b-9140-87287b8d0a96"
 	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
 		RegistrationFlow: &auth.RegistrationFlow{
 			Traits: &auth.IdentityTraits{
-				Email: filledEmail,
+				Email: &filledEmail,
 			},
 			Credential: &auth.RegistrationFlow_Password{
 				Password: &auth.Password{
@@ -164,6 +162,11 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow() {
 
 	}
 	req.Header().Add("Cookie", cookie.String())
+	req.Header().Set("User-Agent", UA)
+	req.Header().Set("X-Forwarded-For", IP)
+
+	clientIP, err := netip.ParseAddr(IP)
+	h.Require().NoError(err)
 
 	ctx := context.Background()
 	flow := &registration.Flow{
@@ -175,6 +178,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow() {
 					Value: req.Msg.GetRegistrationFlow().GetTraits().GetEmail(),
 				},
 			},
+			Timezone: req.Msg.GetRegistrationFlow().GetTraits().GetTimezone().String(),
 		},
 	}
 	// Mock CSRF verification
@@ -188,7 +192,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow() {
 	identityID := "IamBatMan"
 	newSessionID := "c2e577de-2fbc-4fa4-8dcd-321a960ebb36"
 	call1 := h.mockService.
-		On("CompleteRegistrationFlow", ctx, flow).
+		On("CompleteRegistrationFlow", ctx, flow, clientIP, UA).
 		Run(func(args mock.Arguments) {
 			flow := args.Get(1).(*registration.Flow)
 			identityData := flow.Identity
@@ -244,7 +248,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookie() {
 	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
 		RegistrationFlow: &auth.RegistrationFlow{
 			Traits: &auth.IdentityTraits{
-				Email: filledEmail,
+				Email: &filledEmail,
 			},
 			Credential: &auth.RegistrationFlow_Password{
 				Password: &auth.Password{
@@ -253,19 +257,32 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookie() {
 			},
 		},
 	})
+	req.Header().Set("User-Agent", UA)
+	req.Header().Set("X-Forwarded-For", IP)
+
+	clientIP, err := netip.ParseAddr(IP)
+	h.Require().NoError(err)
 
 	ctx := context.Background()
-	flow := &registration.Flow{}
+	flow := &registration.Flow{
+		SessionID: preSessionID, // Use the extracted session ID
+		Password:  req.Msg.GetRegistrationFlow().GetPassword().GetPassword(),
+		Identity: &identity.Identity{
+			Emails: []identity.Email{
+				{
+					Value: req.Msg.GetRegistrationFlow().GetTraits().GetEmail(),
+				},
+			},
+			Timezone: req.Msg.GetRegistrationFlow().GetTraits().GetTimezone().String(),
+		},
+	}
 	// Mock CSRF verification
 
-	// Mock CompleteRegistrationFlow
-
 	call1 := h.mockService.
-		On("CompleteRegistrationFlow", ctx, flow).
+		On("CompleteRegistrationFlow", ctx, flow, clientIP, UA).
 		Run(func(_ mock.Arguments) {
 		}).
 		Return(&session.Session{}, nil).Once()
-	var err error
 	_, err = h.handler.CompleteRegistrationFlow(ctx, req)
 	h.Require().Equal(connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated")).Error(), err.Error())
 	call1.Unset()
@@ -275,7 +292,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookieWithNameSessionI
 	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
 		RegistrationFlow: &auth.RegistrationFlow{
 			Traits: &auth.IdentityTraits{
-				Email: filledEmail,
+				Email: &filledEmail,
 			},
 			Credential: &auth.RegistrationFlow_Password{
 				Password: &auth.Password{
@@ -285,19 +302,34 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookieWithNameSessionI
 		},
 	})
 	cookie := &http.Cookie{
-		Name:  "session",
-		Value: "mudamudamudamudamuda", // Your session ID value
+		Name:  "session_id123",
+		Value: preSessionID, // Your session ID value
 
 	}
 	req.Header().Add("Cookie", cookie.String())
+	req.Header().Set("User-Agent", UA)
+	req.Header().Set("X-Forwarded-For", IP)
+
+	clientIP, err := netip.ParseAddr(IP)
+	h.Require().NoError(err)
+
 	ctx := context.Background()
-	flow := &registration.Flow{}
+	flow := &registration.Flow{
+		SessionID: preSessionID, // Use the extracted session ID
+		Password:  req.Msg.GetRegistrationFlow().GetPassword().GetPassword(),
+		Identity: &identity.Identity{
+			Emails: []identity.Email{
+				{
+					Value: req.Msg.GetRegistrationFlow().GetTraits().GetEmail(),
+				},
+			},
+			Timezone: req.Msg.GetRegistrationFlow().GetTraits().GetTimezone().String(),
+		},
+	}
 	// Mock CSRF verification
 
-	// Mock CompleteRegistrationFlow
-	var err error
 	call1 := h.mockService.
-		On("CompleteRegistrationFlow", ctx, flow).
+		On("CompleteRegistrationFlow", ctx, flow, clientIP, UA).
 		Run(func(_ mock.Arguments) {
 		}).
 		Return(&session.Session{}, nil).Once()
@@ -308,11 +340,10 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookieWithNameSessionI
 }
 
 func (h *handlerTestSuite) TestCompleteRegistrationFlow_ServiceError() {
-	preSessionID := "a02bdf6d-a87b-439b-9140-87287b8d0a96"
 	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
 		RegistrationFlow: &auth.RegistrationFlow{
 			Traits: &auth.IdentityTraits{
-				Email: filledEmail,
+				Email: &filledEmail,
 			},
 			Credential: &auth.RegistrationFlow_Password{
 				Password: &auth.Password{
@@ -327,6 +358,11 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_ServiceError() {
 
 	}
 	req.Header().Add("Cookie", cookie.String())
+	req.Header().Set("User-Agent", UA)
+	req.Header().Set("X-Forwarded-For", IP)
+
+	clientIP, err := netip.ParseAddr(IP)
+	h.Require().NoError(err)
 
 	ctx := context.Background()
 	flow := &registration.Flow{
@@ -338,24 +374,25 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_ServiceError() {
 					Value: req.Msg.GetRegistrationFlow().GetTraits().GetEmail(),
 				},
 			},
+			Timezone: req.Msg.GetRegistrationFlow().GetTraits().GetTimezone().String(),
 		},
 	}
 	// Mock CSRF verification
 
 	// Mock CompleteRegistrationFlow
 	call1 := h.mockService.
-		On("CompleteRegistrationFlow", ctx, flow).
+		On("CompleteRegistrationFlow", ctx, flow, clientIP, UA).
 		Run(func(_ mock.Arguments) {
 		}).
 		Return(nil, errors.New("internal")).Once()
-	var err error
+
 	_, err = h.handler.CompleteRegistrationFlow(ctx, req)
 	h.Require().Equal(err.Error(), internalError().Error())
 	h.mockService.AssertExpectations(h.T())
 	call1.Unset()
 
 	call2 := h.mockService.
-		On("CompleteRegistrationFlow", ctx, flow).
+		On("CompleteRegistrationFlow", ctx, flow, clientIP, UA).
 		Run(func(_ mock.Arguments) {
 		}).
 		Return(nil, registrationService.ErrEmailExists).Once()

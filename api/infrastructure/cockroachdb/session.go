@@ -34,7 +34,23 @@ func (r *sessionRepository) CreateSession(ctx context.Context, session *session.
 			ctx,
 			createSessionSQL,
 			session.Active, zeronull.Int2(session.AuthenticatorAssuranceLevel), session.ExpiryInterval, zeronull.Timestamptz(session.AuthenticatedAt),
+			session.Identity,
 			device.IPAddress, device.GeoLocation, device.UserAgent,
 		).
 		Scan(&session.ID, &session.IssuedAt, &session.ExpiresAt, &session.Devices[0].ID)
+}
+
+func (r *sessionRepository) DeleteSession(context.Context, string) error {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (r *sessionRepository) QuerySession(context.Context, *session.Session) error {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (r *sessionRepository) UpdateDevice(context.Context, *session.Session, *session.Device) error {
+	// TODO implement me
+	panic("implement me")
 }

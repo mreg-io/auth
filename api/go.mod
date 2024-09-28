@@ -3,8 +3,8 @@ module gitlab.mreg.io/my-registry/auth
 go 1.23
 
 require (
-	buf.build/gen/go/mreg/protobuf/connectrpc/go v1.17.0-20240926081646-a6f94f16286f.1
-	buf.build/gen/go/mreg/protobuf/protocolbuffers/go v1.34.2-20240926081646-a6f94f16286f.2
+	buf.build/gen/go/mreg/protobuf/connectrpc/go v1.17.0-20240927015208-f53bff8e05cd.1
+	buf.build/gen/go/mreg/protobuf/protocolbuffers/go v1.34.2-20240927015208-f53bff8e05cd.2
 	connectrpc.com/connect v1.17.0
 	connectrpc.com/grpcreflect v1.2.0
 	connectrpc.com/validate v0.1.0
@@ -31,6 +31,7 @@ require (
 	golang.org/x/crypto v0.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
 	google.golang.org/genproto v0.0.0-20240924160255-9d4c2d233b61 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240924160255-9d4c2d233b61 // indirect
