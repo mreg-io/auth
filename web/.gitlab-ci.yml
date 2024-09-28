@@ -79,3 +79,18 @@ web:format:
   needs: [web:dep]
   script:
     - pnpm format -c
+
+web:test:
+  extends: .web
+  stage: test
+  needs: [web:build]
+  variables:
+    CSRF_TOKEN_SECRET: bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJ
+  script:
+    - pnpm coverage
+  artifacts:
+    reports:
+      junit: web/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: web/coverage/cobertura-coverage.xml

@@ -9,7 +9,7 @@ export default tseslint.config(
   pluginJs.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,
-  { ignores: ["build/*"] },
+  { ignores: ["build/*", "coverage/*"] },
   // Typescript ESLint
   {
     languageOptions: {
