@@ -85,6 +85,7 @@ web:test:
   stage: test
   needs: [web:build]
   variables:
+    AUTH_API_URL: http://api:8080
     CSRF_TOKEN_SECRET: bGoa+V7g/yqDXvKRqq+JTFn4uQZbPiQJo4pf9RzJ
   script:
     - pnpm coverage
