@@ -37,6 +37,11 @@ default:
   before_script:
     - cat $BUF_NETRC > $HOME/.netrc
 
+# Specify project-wide node private packages
+.node:
+  before_script:
+    - cat $BUF_NPMRC > $HOME/.npmrc
+
 include:
   - local: migrations/.gitlab-ci.yml
     rules:

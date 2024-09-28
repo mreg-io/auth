@@ -31,7 +31,7 @@ include:
 .web:
   image: node:latest
   before_script:
-    - cat $BUF_NPMRC > $HOME/.npmrc
+    - !reference [.node, before_script]
     # pnpm config
     - corepack enable
     - corepack prepare pnpm@latest-9 --activate

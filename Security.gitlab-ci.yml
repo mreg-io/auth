@@ -11,25 +11,27 @@ include:
     - docker
     - amd64
 
+.dep:
+  extends: .go
+  before_script:
+    - !reference [.go, before_script]
+    - !reference [.node, before_script]
+
 # Dependency scanning
 dependency_scanning:
   extends:
     - .security
-    - .go
+    - .dep
 
   # noinspection YAMLSchemaValidation
   before_script:
-    - !reference [.go, before_script]
-
-# Override gemnasium-dependency_scanning image
-#gemnasium-dependency_scanning:
-#  image: registry.mreg.io/danny900714/gemnasium:latest
+    - !reference [.dep, before_script]
 
 # SAST
 sast:
   extends:
     - .security
-    - .go
+    - .dep
   variables:
     GITLAB_ADVANCED_SAST_ENABLED: "true"
 
