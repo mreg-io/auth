@@ -7,14 +7,15 @@ import (
 	"net/http"
 	"net/netip"
 	"strings"
-
-	"gitlab.mreg.io/my-registry/auth/infrastructure/cockroachdb"
+	"time"
 
 	authConnect "buf.build/gen/go/mreg/protobuf/connectrpc/go/mreg/auth/v1alpha1/authv1alpha1connect"
 	auth "buf.build/gen/go/mreg/protobuf/protocolbuffers/go/mreg/auth/v1alpha1"
 	"connectrpc.com/connect"
+
 	"gitlab.mreg.io/my-registry/auth/domain/identity"
 	"gitlab.mreg.io/my-registry/auth/domain/registration"
+	"gitlab.mreg.io/my-registry/auth/infrastructure/cockroachdb"
 
 	serviceRegistration "gitlab.mreg.io/my-registry/auth/service/registration"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -116,6 +117,11 @@ func (r *registrationHandler) CompleteRegistrationFlow(ctx context.Context, req 
 	} else {
 		return nil, errorMissingHeader("X-Forwarded-For")
 	}
+	timezone := req.Msg.GetRegistrationFlow().GetTraits().GetTimezone().GetId()
+	_, err = time.LoadLocation(timezone)
+	if err != nil {
+		timezone = ""
+	}
 	flow := &registration.Flow{
 		SessionID: sessionID, // Use the extracted session ID
 		Password:  req.Msg.GetRegistrationFlow().GetPassword().GetPassword(),
@@ -125,7 +131,7 @@ func (r *registrationHandler) CompleteRegistrationFlow(ctx context.Context, req 
 					Value: req.Msg.GetRegistrationFlow().GetTraits().GetEmail(),
 				},
 			},
-			Timezone: req.Msg.GetRegistrationFlow().GetTraits().GetTimezone().String(),
+			Timezone: timezone,
 		},
 	}
 

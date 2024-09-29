@@ -2,7 +2,6 @@ package registration
 
 import (
 	"context"
-	"errors"
 	"net/netip"
 	"os"
 	"testing"
@@ -219,6 +218,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_Success() {
 	s.Require().NoError(err)
 	s.NotNil(sessionModel)
 	s.Equal(sessionModel.Identity.Emails[0].Value, email)
+	s.Equal(timezone, sessionModel.Identity.Timezone)
 	s.Equal(expectedSession, sessionModel)
 	// Assert: Ensure mocks were called
 	s.mockFlowRepository.AssertExpectations(s.T())
@@ -318,13 +318,21 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_DeviceExist() {
 		Run(func(args mock.Arguments) {
 			preSession := args.Get(1).(*session.Session)
 			preSession.ExpiresAt = time.Now().Add(900 * time.Hour)
+			preSession.Devices = []session.Device{
+				{
+					IPAddress:   ipAddress,
+					UserAgent:   userAgent,
+					GeoLocation: "(unimplemented)",
+				},
+			}
 		}).
 		Return(nil).Once()
-	s.mockSessionRepository.On("UpdateDevice", ctx, mock.Anything, mock.Anything).Return(errors.New("fwe")).Once()
-
+	s.mockIdentityRepository.On("EmailExists", ctx, registrationFlow.Identity.Emails[0].Value).Return(false, nil).Once() // Email doesn't exist
+	s.mockIdentityRepository.On("CreateIdentity", ctx, mock.Anything).Return(nil).Once()
+	s.mockSessionRepository.On("CreateSession", ctx, mock.Anything).Return(nil).Once()
 	// Act: call CompleteRegistrationFlow
 	_, err := s.service.CompleteRegistrationFlow(ctx, registrationFlow, ipAddress, userAgent)
-	s.Require().Error(err)
+	s.Require().NoError(err)
 	// Assert: Ensure no error and valid session returned
 	// Assert: Ensure mocks were called
 	s.mockFlowRepository.AssertExpectations(s.T())

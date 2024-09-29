@@ -8,6 +8,9 @@ import (
 	"net/netip"
 	"testing"
 	"time"
+	_ "time/tzdata"
+
+	"google.golang.org/genproto/googleapis/type/datetime"
 
 	"gitlab.mreg.io/my-registry/auth/domain/identity"
 
@@ -17,6 +20,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+
 	"gitlab.mreg.io/my-registry/auth/domain/registration"
 	"gitlab.mreg.io/my-registry/auth/domain/session"
 	registrationService "gitlab.mreg.io/my-registry/auth/service/registration"
@@ -65,6 +69,7 @@ var (
 	UA             = "pro-n-hub"
 	IP             = "192.0.2.43"
 	preSessionID   = "a02bdf6d-a87b-439b-9140-87287b8d0a96"
+	timezone       = "America/New_York"
 )
 
 func (h *handlerTestSuite) TestCreateRegistrationFlow() {
@@ -144,10 +149,15 @@ func (h *handlerTestSuite) TestCreateRegistrationFlow_WithoutUA() {
 }
 
 func (h *handlerTestSuite) TestCompleteRegistrationFlow() {
+	cTimezone := &datetime.TimeZone{
+		Id:      timezone, // You can set the ID to the timezone string
+		Version: "1.0",    // Set a default version or your desired value
+	}
 	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
 		RegistrationFlow: &auth.RegistrationFlow{
 			Traits: &auth.IdentityTraits{
-				Email: &filledEmail,
+				Email:    &filledEmail,
+				Timezone: cTimezone,
 			},
 			Credential: &auth.RegistrationFlow_Password{
 				Password: &auth.Password{
@@ -178,7 +188,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow() {
 					Value: req.Msg.GetRegistrationFlow().GetTraits().GetEmail(),
 				},
 			},
-			Timezone: req.Msg.GetRegistrationFlow().GetTraits().GetTimezone().String(),
+			Timezone: timezone,
 		},
 	}
 	// Mock CSRF verification
@@ -225,7 +235,6 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow() {
 	h.Require().Equal(CreateTime, message.GetIdentity().GetCreateTime().AsTime())
 	h.Require().Equal(CreateTime, message.GetIdentity().GetUpdateTime().AsTime())
 	h.Require().Equal(CreateTime, message.GetIdentity().GetStateUpdateTime().AsTime())
-
 	// Validate cookies
 	setCookies := res.Header()["Set-Cookie"]
 
@@ -245,10 +254,15 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow() {
 }
 
 func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookie() {
+	cTimezone := &datetime.TimeZone{
+		Id:      timezone, // You can set the ID to the timezone string
+		Version: "1.0",    // Set a default version or your desired value
+	}
 	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
 		RegistrationFlow: &auth.RegistrationFlow{
 			Traits: &auth.IdentityTraits{
-				Email: &filledEmail,
+				Email:    &filledEmail,
+				Timezone: cTimezone,
 			},
 			Credential: &auth.RegistrationFlow_Password{
 				Password: &auth.Password{
@@ -273,7 +287,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookie() {
 					Value: req.Msg.GetRegistrationFlow().GetTraits().GetEmail(),
 				},
 			},
-			Timezone: req.Msg.GetRegistrationFlow().GetTraits().GetTimezone().String(),
+			Timezone: timezone,
 		},
 	}
 	// Mock CSRF verification
@@ -289,10 +303,15 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookie() {
 }
 
 func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookieWithNameSessionID() {
+	cTimezone := &datetime.TimeZone{
+		Id:      timezone, // You can set the ID to the timezone string
+		Version: "1.0",    // Set a default version or your desired value
+	}
 	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
 		RegistrationFlow: &auth.RegistrationFlow{
 			Traits: &auth.IdentityTraits{
-				Email: &filledEmail,
+				Email:    &filledEmail,
+				Timezone: cTimezone,
 			},
 			Credential: &auth.RegistrationFlow_Password{
 				Password: &auth.Password{
@@ -323,7 +342,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookieWithNameSessionI
 					Value: req.Msg.GetRegistrationFlow().GetTraits().GetEmail(),
 				},
 			},
-			Timezone: req.Msg.GetRegistrationFlow().GetTraits().GetTimezone().String(),
+			Timezone: timezone,
 		},
 	}
 	// Mock CSRF verification
@@ -340,10 +359,15 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookieWithNameSessionI
 }
 
 func (h *handlerTestSuite) TestCompleteRegistrationFlow_ServiceError() {
+	cTimezone := &datetime.TimeZone{
+		Id:      timezone, // You can set the ID to the timezone string
+		Version: "1.0",    // Set a default version or your desired value
+	}
 	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
 		RegistrationFlow: &auth.RegistrationFlow{
 			Traits: &auth.IdentityTraits{
-				Email: &filledEmail,
+				Email:    &filledEmail,
+				Timezone: cTimezone,
 			},
 			Credential: &auth.RegistrationFlow_Password{
 				Password: &auth.Password{
@@ -374,7 +398,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_ServiceError() {
 					Value: req.Msg.GetRegistrationFlow().GetTraits().GetEmail(),
 				},
 			},
-			Timezone: req.Msg.GetRegistrationFlow().GetTraits().GetTimezone().String(),
+			Timezone: timezone,
 		},
 	}
 	// Mock CSRF verification

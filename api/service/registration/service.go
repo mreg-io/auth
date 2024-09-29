@@ -105,6 +105,7 @@ func (s *service) CompleteRegistrationFlow(ctx context.Context, flow *registrati
 		Emails:   []identity.Email{flow.Identity.Emails[0]},
 		Timezone: flow.Identity.Timezone,
 	}
+
 	// password hash
 	newIdentity.PasswordHash, err = identity.CreateHash(flow.Password, identity.DefaultParams)
 	if err != nil {
