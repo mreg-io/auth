@@ -122,6 +122,7 @@ func (r *registrationHandler) CompleteRegistrationFlow(ctx context.Context, req 
 	if err != nil {
 		timezone = ""
 	}
+
 	flow := &registration.Flow{
 		SessionID: sessionID, // Use the extracted session ID
 		Password:  req.Msg.GetRegistrationFlow().GetPassword().GetPassword(),
@@ -136,7 +137,8 @@ func (r *registrationHandler) CompleteRegistrationFlow(ctx context.Context, req 
 	}
 
 	// Complete the registration flow, handling potential errors
-	sessionData, err := r.registrationService.CompleteRegistrationFlow(ctx, flow, clientIP, userAgent)
+	name := req.Msg.GetRegistrationFlow().GetName()
+	sessionData, err := r.registrationService.CompleteRegistrationFlow(ctx, flow, name, clientIP, userAgent)
 	if err != nil {
 		switch {
 		case errors.Is(err, cockroachdb.ErrConstraint):
@@ -147,6 +149,8 @@ func (r *registrationHandler) CompleteRegistrationFlow(ctx context.Context, req 
 			return nil, errorInsecurePassword()
 		case errors.Is(err, serviceRegistration.ErrSessionExpired):
 			return nil, errorSessionExpired()
+		case errors.Is(err, serviceRegistration.ErrUnauthenticated):
+			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 		case errors.Is(err, serviceRegistration.ErrFlowExpired):
 			return nil, errorFlowExpired()
 		default:

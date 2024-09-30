@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"gitlab.mreg.io/my-registry/auth/domain/identity"
 
 	"github.com/stretchr/testify/mock"
@@ -48,7 +50,7 @@ func (m *mockFlowRepository) CreateFlow(ctx context.Context, flow *registration.
 	return args.Error(0)
 }
 
-func (m *mockFlowRepository) QueryFlow(ctx context.Context, flow *registration.Flow) error {
+func (m *mockFlowRepository) QueryFlowByFlowID(ctx context.Context, flow *registration.Flow) error {
 	args := m.Called(ctx, flow)
 	return args.Error(0)
 }
@@ -186,7 +188,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_Success() {
 	}
 	ctx := context.Background()
 	// Mocking expected behavior for valid flow and session
-	s.mockFlowRepository.On("QueryFlow", ctx, registrationFlow).
+	s.mockFlowRepository.On("QueryFlowByFlowID", ctx, registrationFlow).
 		Run(func(args mock.Arguments) {
 			registrationFlow := args.Get(1).(*registration.Flow)
 			registrationFlow.ExpiresAt = time.Now().Add(900 * time.Hour)
@@ -211,7 +213,8 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_Success() {
 		Return(nil).Once()
 	s.mockSessionRepository.On("CreateSession", ctx, mock.Anything).Return(nil).Once()
 	// Act: call CompleteRegistrationFlow
-	sessionModel, err := s.service.CompleteRegistrationFlow(ctx, registrationFlow, ipAddress, userAgent)
+	name := "registrationFlows/" + uuid.New().String()
+	sessionModel, err := s.service.CompleteRegistrationFlow(ctx, registrationFlow, name, ipAddress, userAgent)
 	s.Require().NoError(err)
 	expectedSession.Identity = sessionModel.Identity
 	// Assert: Ensure no error and valid session returned
@@ -239,14 +242,15 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_FlowExpire() {
 	}
 	ctx := context.Background()
 	// Mocking expected behavior for valid flow and session
-	s.mockFlowRepository.On("QueryFlow", ctx, registrationFlow).
+	s.mockFlowRepository.On("QueryFlowByFlowID", ctx, registrationFlow).
 		Run(func(args mock.Arguments) {
 			registrationFlow := args.Get(1).(*registration.Flow)
 			registrationFlow.ExpiresAt = time.Time{} // Expired flow
 		}).
 		Return(nil).Once()
 	var err error
-	_, err = s.service.CompleteRegistrationFlow(ctx, registrationFlow, ipAddress, userAgent)
+	name := "registrationFlows/" + uuid.New().String()
+	_, err = s.service.CompleteRegistrationFlow(ctx, registrationFlow, name, ipAddress, userAgent)
 	// Assert: Ensure no error and valid session returned
 	s.Require().Equal(ErrFlowExpired.Error(), err.Error())
 
@@ -268,7 +272,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_SessionExpire() {
 	}
 	ctx := context.Background()
 	// Mocking expected behavior for valid flow and session
-	s.mockFlowRepository.On("QueryFlow", ctx, registrationFlow).
+	s.mockFlowRepository.On("QueryFlowByFlowID", ctx, registrationFlow).
 		Run(func(args mock.Arguments) {
 			registrationFlow := args.Get(1).(*registration.Flow)
 			registrationFlow.ExpiresAt = time.Now().Add(900 * time.Hour)
@@ -285,7 +289,8 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_SessionExpire() {
 		Return(nil).Once()
 
 	var err error
-	_, err = s.service.CompleteRegistrationFlow(ctx, registrationFlow, ipAddress, userAgent)
+	name := "registrationFlows/" + uuid.New().String()
+	_, err = s.service.CompleteRegistrationFlow(ctx, registrationFlow, name, ipAddress, userAgent)
 	// Assert: Ensure no error and valid session returned
 	s.Require().Equal(ErrSessionExpired.Error(), err.Error())
 	// Assert: Ensure mocks were called
@@ -308,7 +313,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_DeviceExist() {
 
 	ctx := context.Background()
 	// Mocking expected behavior for valid flow and session
-	s.mockFlowRepository.On("QueryFlow", ctx, registrationFlow).
+	s.mockFlowRepository.On("QueryFlowByFlowID", ctx, registrationFlow).
 		Run(func(args mock.Arguments) {
 			registrationFlow := args.Get(1).(*registration.Flow)
 			registrationFlow.ExpiresAt = time.Now().Add(900 * time.Hour)
@@ -331,7 +336,8 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_DeviceExist() {
 	s.mockIdentityRepository.On("CreateIdentity", ctx, mock.Anything).Return(nil).Once()
 	s.mockSessionRepository.On("CreateSession", ctx, mock.Anything).Return(nil).Once()
 	// Act: call CompleteRegistrationFlow
-	_, err := s.service.CompleteRegistrationFlow(ctx, registrationFlow, ipAddress, userAgent)
+	name := "registrationFlows/" + uuid.New().String()
+	_, err := s.service.CompleteRegistrationFlow(ctx, registrationFlow, name, ipAddress, userAgent)
 	s.Require().NoError(err)
 	// Assert: Ensure no error and valid session returned
 	// Assert: Ensure mocks were called
@@ -353,7 +359,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_EmailExists() {
 	}
 	ctx := context.Background()
 	// Mocking expected behavior for valid flow and session
-	s.mockFlowRepository.On("QueryFlow", ctx, registrationFlow).
+	s.mockFlowRepository.On("QueryFlowByFlowID", ctx, registrationFlow).
 		Run(func(args mock.Arguments) {
 			registrationFlow := args.Get(1).(*registration.Flow)
 			registrationFlow.ExpiresAt = time.Now().Add(900 * time.Hour)
@@ -373,7 +379,8 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_EmailExists() {
 
 	// Act: call CompleteRegistrationFlow
 	var err error
-	_, err = s.service.CompleteRegistrationFlow(ctx, registrationFlow, ipAddress, userAgent)
+	name := "registrationFlows/" + uuid.New().String()
+	_, err = s.service.CompleteRegistrationFlow(ctx, registrationFlow, name, ipAddress, userAgent)
 	// Assert: Ensure no error and valid session returned
 	s.Require().Equal(ErrEmailExists.Error(), err.Error())
 	// Assert: Ensure mocks were called
@@ -395,7 +402,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_WeakPassword() {
 	}
 	ctx := context.Background()
 	// Mocking expected behavior for valid flow and session
-	s.mockFlowRepository.On("QueryFlow", ctx, registrationFlow).
+	s.mockFlowRepository.On("QueryFlowByFlowID", ctx, registrationFlow).
 		Run(func(args mock.Arguments) {
 			registrationFlow := args.Get(1).(*registration.Flow)
 			registrationFlow.ExpiresAt = time.Now().Add(900 * time.Hour)
@@ -414,9 +421,34 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_WeakPassword() {
 	s.mockIdentityRepository.On("EmailExists", ctx, registrationFlow.Identity.Emails[0].Value).Return(false, nil).Once() // Email doesn't exist
 	// Act: call CompleteRegistrationFlow
 	var err error
-	_, err = s.service.CompleteRegistrationFlow(ctx, registrationFlow, ipAddress, userAgent)
+	name := "registrationFlows/" + uuid.New().String()
+	_, err = s.service.CompleteRegistrationFlow(ctx, registrationFlow, name, ipAddress, userAgent)
 	// Assert: Ensure no error and valid session returned
 	s.Require().Equal(ErrInsecurePassword.Error(), err.Error())
+
+	// Assert: Ensure mocks were called
+	s.mockFlowRepository.AssertExpectations(s.T())
+	s.mockSessionRepository.AssertExpectations(s.T())
+	s.mockIdentityRepository.AssertExpectations(s.T())
+}
+
+func (s *serviceTestSuite) TestCompleteRegistrationFlow_NoNameInFlow() {
+	ipAddress, _ := netip.ParseAddr("192.168.1.1")
+	// Arrange: create a valid flow and session
+	registrationFlow := &registration.Flow{
+		SessionID: sessionID,
+		Identity: &identity.Identity{
+			Emails:   []identity.Email{{Value: email}},
+			Timezone: timezone,
+		},
+		Password: "NoNumberPassword",
+	}
+	ctx := context.Background()
+	// Mocking expected behavior for valid flow and session
+	var err error
+	_, err = s.service.CompleteRegistrationFlow(ctx, registrationFlow, "", ipAddress, userAgent)
+	// Assert: Ensure no error and valid session returned
+	s.Require().Equal(ErrUnauthenticated.Error(), err.Error())
 
 	// Assert: Ensure mocks were called
 	s.mockFlowRepository.AssertExpectations(s.T())

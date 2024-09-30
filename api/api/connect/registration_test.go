@@ -10,6 +10,8 @@ import (
 	"time"
 	_ "time/tzdata"
 
+	"github.com/google/uuid"
+
 	"google.golang.org/genproto/googleapis/type/datetime"
 
 	"gitlab.mreg.io/my-registry/auth/domain/identity"
@@ -43,8 +45,8 @@ func (m *mockRegistrationService) CreateRegistrationFlow(ctx context.Context, ip
 	return flow, sessionModel, err
 }
 
-func (m *mockRegistrationService) CompleteRegistrationFlow(ctx context.Context, f *registration.Flow, addr netip.Addr, s string) (*session.Session, error) {
-	args := m.Called(ctx, f, addr, s)
+func (m *mockRegistrationService) CompleteRegistrationFlow(ctx context.Context, f *registration.Flow, n string, addr netip.Addr, s string) (*session.Session, error) {
+	args := m.Called(ctx, f, n, addr, s)
 
 	// Extract the returned values from the mock call
 	sessionModel, _ := args.Get(0).(*session.Session)
@@ -155,6 +157,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow() {
 	}
 	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
 		RegistrationFlow: &auth.RegistrationFlow{
+			Name: "registrationFlows/" + uuid.New().String(),
 			Traits: &auth.IdentityTraits{
 				Email:    &filledEmail,
 				Timezone: cTimezone,
@@ -169,7 +172,6 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow() {
 	cookie := &http.Cookie{
 		Name:  "session_id",
 		Value: preSessionID, // Your session ID value
-
 	}
 	req.Header().Add("Cookie", cookie.String())
 	req.Header().Set("User-Agent", UA)
@@ -198,11 +200,11 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow() {
 	h.Require().NoError(err)
 	sessionExpiresTime, err := time.Parse(time.UnixDate, "Wed Feb 28 11:06:39 UTC 2069")
 	h.Require().NoError(err)
-
+	name := req.Msg.GetRegistrationFlow().GetName()
 	identityID := "IamBatMan"
 	newSessionID := "c2e577de-2fbc-4fa4-8dcd-321a960ebb36"
 	call1 := h.mockService.
-		On("CompleteRegistrationFlow", ctx, flow, clientIP, UA).
+		On("CompleteRegistrationFlow", ctx, flow, name, clientIP, UA).
 		Run(func(args mock.Arguments) {
 			flow := args.Get(1).(*registration.Flow)
 			identityData := flow.Identity
@@ -260,6 +262,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookie() {
 	}
 	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
 		RegistrationFlow: &auth.RegistrationFlow{
+			Name: "registrationFlows/" + uuid.New().String(),
 			Traits: &auth.IdentityTraits{
 				Email:    &filledEmail,
 				Timezone: cTimezone,
@@ -276,7 +279,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookie() {
 
 	clientIP, err := netip.ParseAddr(IP)
 	h.Require().NoError(err)
-
+	name := req.Msg.GetRegistrationFlow().GetName()
 	ctx := context.Background()
 	flow := &registration.Flow{
 		SessionID: preSessionID, // Use the extracted session ID
@@ -293,7 +296,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookie() {
 	// Mock CSRF verification
 
 	call1 := h.mockService.
-		On("CompleteRegistrationFlow", ctx, flow, clientIP, UA).
+		On("CompleteRegistrationFlow", ctx, flow, name, clientIP, UA).
 		Run(func(_ mock.Arguments) {
 		}).
 		Return(&session.Session{}, nil).Once()
@@ -309,6 +312,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookieWithNameSessionI
 	}
 	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
 		RegistrationFlow: &auth.RegistrationFlow{
+			Name: "registrationFlows/" + uuid.New().String(),
 			Traits: &auth.IdentityTraits{
 				Email:    &filledEmail,
 				Timezone: cTimezone,
@@ -331,7 +335,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookieWithNameSessionI
 
 	clientIP, err := netip.ParseAddr(IP)
 	h.Require().NoError(err)
-
+	name := req.Msg.GetRegistrationFlow().GetName()
 	ctx := context.Background()
 	flow := &registration.Flow{
 		SessionID: preSessionID, // Use the extracted session ID
@@ -348,7 +352,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_NoCookieWithNameSessionI
 	// Mock CSRF verification
 
 	call1 := h.mockService.
-		On("CompleteRegistrationFlow", ctx, flow, clientIP, UA).
+		On("CompleteRegistrationFlow", ctx, flow, name, clientIP, UA).
 		Run(func(_ mock.Arguments) {
 		}).
 		Return(&session.Session{}, nil).Once()
@@ -365,6 +369,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_ServiceError() {
 	}
 	req := connect.NewRequest[auth.CompleteRegistrationFlowRequest](&auth.CompleteRegistrationFlowRequest{
 		RegistrationFlow: &auth.RegistrationFlow{
+			Name: "registrationFlows/" + uuid.New().String(),
 			Traits: &auth.IdentityTraits{
 				Email:    &filledEmail,
 				Timezone: cTimezone,
@@ -388,6 +393,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_ServiceError() {
 	clientIP, err := netip.ParseAddr(IP)
 	h.Require().NoError(err)
 
+	name := req.Msg.GetRegistrationFlow().GetName()
 	ctx := context.Background()
 	flow := &registration.Flow{
 		SessionID: preSessionID, // Use the extracted session ID
@@ -405,7 +411,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_ServiceError() {
 
 	// Mock CompleteRegistrationFlow
 	call1 := h.mockService.
-		On("CompleteRegistrationFlow", ctx, flow, clientIP, UA).
+		On("CompleteRegistrationFlow", ctx, flow, name, clientIP, UA).
 		Run(func(_ mock.Arguments) {
 		}).
 		Return(nil, errors.New("internal")).Once()
@@ -416,7 +422,7 @@ func (h *handlerTestSuite) TestCompleteRegistrationFlow_ServiceError() {
 	call1.Unset()
 
 	call2 := h.mockService.
-		On("CompleteRegistrationFlow", ctx, flow, clientIP, UA).
+		On("CompleteRegistrationFlow", ctx, flow, name, clientIP, UA).
 		Run(func(_ mock.Arguments) {
 		}).
 		Return(nil, registrationService.ErrEmailExists).Once()

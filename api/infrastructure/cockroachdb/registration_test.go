@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"gitlab.mreg.io/my-registry/auth/domain/identity"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/suite"
 	"gitlab.mreg.io/my-registry/auth/domain/registration"
@@ -17,6 +20,15 @@ type RegistrationRepositorySuite struct {
 	repository registration.Repository
 }
 
+var (
+	sessionID1 = uuid.New()
+	sessionID2 = uuid.New()
+	sessionID3 = uuid.New()
+	flowID1    = uuid.New()
+	flowID2    = uuid.New()
+	flowID3    = uuid.New()
+)
+
 func (s *RegistrationRepositorySuite) SetupSuite() {
 	config, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
 	s.Require().NoError(err)
@@ -25,6 +37,26 @@ func (s *RegistrationRepositorySuite) SetupSuite() {
 	s.repository = NewRegistrationRepository(s.pool)
 	s.T().Setenv("REGISTRATION_EXPIRY_INTERVAL", "1h")
 	s.T().Setenv("SESSION_EXPIRY_INTERVAL", "1h")
+
+	ctx := context.Background()
+	_, err = s.pool.Exec(ctx, `
+        INSERT INTO sessions (id, active, authenticator_assurance_level, issued_at, expires_at) 
+        VALUES 
+        ($1, true, 1, current_timestamp, current_timestamp + interval '2 hours'),
+        ($2, false, 1, current_timestamp, current_timestamp + interval '2 hours'),
+        ($3, true, 2, current_timestamp, current_timestamp + interval '2 hours')
+    `, sessionID1, sessionID2, sessionID3)
+	s.Require().NoError(err)
+
+	_, err = s.pool.Exec(ctx, `
+        INSERT INTO registration_flows (id, issued_at, expires_at, session_id) 
+        VALUES 
+        ($1, current_timestamp, current_timestamp + interval '2 hours', $4),
+        ($2, current_timestamp, current_timestamp + interval '2 hours', $5),
+        ($3, current_timestamp, current_timestamp + interval '2 hours', $6)
+    `, flowID1, flowID2, flowID3,
+		sessionID1, sessionID2, sessionID3)
+	s.Require().NoError(err)
 }
 
 func (s *RegistrationRepositorySuite) TestCreateFlow_WithoutErr() {
@@ -84,6 +116,56 @@ func (s *RegistrationRepositorySuite) TestCreateFlow_WithUnknownSessionID() {
 	err = s.pool.
 		QueryRow(ctx, `SELECT id, issued_at, expires_at, session_id from registration_flows WHERE id = $1`, testCase.FlowID).
 		Scan(&savedFlow.FlowID, &savedFlow.IssuedAt, &savedFlow.ExpiresAt, &savedFlow.SessionID)
+	s.Require().Error(err)
+}
+
+func (s *RegistrationRepositorySuite) TestQueryFlow1() {
+	ctx := context.Background()
+
+	// below is the test
+	flow := &registration.Flow{
+		FlowID: flowID1.String(),
+	}
+	err := s.repository.QueryFlowByFlowID(ctx, flow)
+	s.Require().NoError(err)
+	s.Require().Equal(sessionID1.String(), flow.SessionID)
+	s.Require().NotEmpty(flow.IssuedAt)
+	s.Require().NotEmpty(flow.ExpiresAt)
+	s.Greater(flow.ExpiresAt, flow.IssuedAt)
+}
+
+func (s *RegistrationRepositorySuite) TestQueryFlow2_SetUpAllField_ShouldOverWrite() {
+	issuedAt, err := time.Parse(time.UnixDate, "Wed Feb 25 11:06:39 PST 5069")
+	s.Require().NoError(err)
+	expiresAt, err := time.Parse(time.UnixDate, "Wed Feb 25 11:06:39 PST 2069")
+	s.Require().NoError(err)
+	ctx := context.Background()
+
+	flow := &registration.Flow{
+		FlowID:    flowID2.String(),
+		SessionID: "ed074d1e-fe04-4683-9239-91cf59f126c9",
+		IssuedAt:  issuedAt,
+		ExpiresAt: expiresAt,
+		Password:  "secret",
+		Interval:  time.Hour,
+		Identity:  &identity.Identity{},
+	}
+	err = s.repository.QueryFlowByFlowID(ctx, flow)
+	s.Require().NoError(err)
+	s.Require().NotEqual("ed074d1e-fe04-4683-9239-91cf59f126c9", flow.SessionID)
+	s.Require().NotEqual(issuedAt, flow.IssuedAt)
+	s.Require().NotEqual(expiresAt, flow.ExpiresAt)
+	s.Greater(flow.ExpiresAt, flow.IssuedAt)
+}
+
+func (s *RegistrationRepositorySuite) TestQueryFlow3_SearchNotExistFlowID() {
+	ctx := context.Background()
+
+	// below is the test
+	flow := &registration.Flow{
+		FlowID: uuid.New().String(),
+	}
+	err := s.repository.QueryFlowByFlowID(ctx, flow)
 	s.Require().Error(err)
 }
 

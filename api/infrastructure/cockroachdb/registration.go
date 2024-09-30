@@ -11,6 +11,9 @@ import (
 //go:embed sql/createRegistrationFlow.sql
 var insertRegistrationFlowSQL string
 
+//go:embed sql/queryRegistrationFlow.sql
+var queryRegistrationFlowSQL string
+
 type RegistrationRepository struct {
 	db *pgxpool.Pool
 }
@@ -29,7 +32,12 @@ func (r *RegistrationRepository) CreateFlow(ctx context.Context, flow *registrat
 		Scan(&flow.FlowID, &flow.IssuedAt, &flow.ExpiresAt)
 }
 
-func (r *RegistrationRepository) QueryFlow(context.Context, *registration.Flow) error {
-	// TODO: Implement me
-	panic("not implemented")
+func (r *RegistrationRepository) QueryFlowByFlowID(ctx context.Context, flow *registration.Flow) error {
+	return r.db.
+		QueryRow(
+			ctx,
+			queryRegistrationFlowSQL,
+			flow.FlowID,
+		).
+		Scan(&flow.IssuedAt, &flow.ExpiresAt, &flow.SessionID)
 }

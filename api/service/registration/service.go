@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/netip"
 	"os"
+	"strings"
 	"time"
 
 	"gitlab.mreg.io/my-registry/auth/domain/identity"
@@ -14,7 +15,7 @@ import (
 
 type Service interface {
 	CreateRegistrationFlow(ctx context.Context, ipAddress netip.Addr, userAgent string) (*registration.Flow, *session.Session, error)
-	CompleteRegistrationFlow(context.Context, *registration.Flow, netip.Addr, string) (*session.Session, error)
+	CompleteRegistrationFlow(context.Context, *registration.Flow, string, netip.Addr, string) (*session.Session, error)
 }
 
 type service struct {
@@ -57,17 +58,27 @@ func (s *service) CreateRegistrationFlow(ctx context.Context, ipAddress netip.Ad
 }
 
 // CompleteRegistrationFlow will fill the flow identity in the process
-func (s *service) CompleteRegistrationFlow(ctx context.Context, flow *registration.Flow, ipAddress netip.Addr, userAgent string) (*session.Session, error) {
+func (s *service) CompleteRegistrationFlow(ctx context.Context, flow *registration.Flow, name string, ipAddress netip.Addr, userAgent string) (*session.Session, error) {
 	var err error
 
+	providedSessionID := flow.SessionID
+	lastSlashIndex := strings.LastIndex(name, "/")
+	if lastSlashIndex == -1 {
+		return nil, ErrUnauthenticated
+	}
+	flow.FlowID = name[:lastSlashIndex]
 	// check if flow expires
-	if err = s.registrationFlow.QueryFlow(ctx, flow); err != nil {
+	if err = s.registrationFlow.QueryFlowByFlowID(ctx, flow); err != nil {
 		return nil, err
 	}
 	if flow.IsExpired() {
 		return nil, ErrFlowExpired
 	}
 
+	// check if sessionID in cookie match that in db
+	if providedSessionID != flow.SessionID {
+		return nil, ErrUnauthenticated
+	}
 	// check if session expired
 	preSessionData := &session.Session{ID: flow.SessionID}
 	if err = s.session.QuerySession(ctx, preSessionData); err != nil {
