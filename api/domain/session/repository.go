@@ -6,7 +6,7 @@ import (
 
 type Repository interface {
 	CreateSession(ctx context.Context, session *Session) error
-	DeleteSession(ctx context.Context, sessionID string) error
-	QuerySession(ctx context.Context, session *Session) error
-	UpdateDevice(ctx context.Context, session *Session, newDevice *Device) error
+	QuerySessionByID(ctx context.Context, session *Session) error
+	QuerySessionWithDevices(ctx context.Context, session *Session) error
+	InsertDevice(ctx context.Context, newDevice *Device) error
 }

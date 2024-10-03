@@ -13,6 +13,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+
 	"gitlab.mreg.io/my-registry/auth/domain/registration"
 	"gitlab.mreg.io/my-registry/auth/domain/session"
 )
@@ -31,13 +32,18 @@ func (m *mockSessionRepository) DeleteSession(ctx context.Context, sessionID str
 	return args.Error(0)
 }
 
-func (m *mockSessionRepository) QuerySession(ctx context.Context, session *session.Session) error {
+func (m *mockSessionRepository) QuerySessionByID(ctx context.Context, session *session.Session) error {
 	args := m.Called(ctx, session)
 	return args.Error(0)
 }
 
-func (m *mockSessionRepository) UpdateDevice(ctx context.Context, session *session.Session, newDevice *session.Device) error {
-	args := m.Called(ctx, session, newDevice)
+func (m *mockSessionRepository) QuerySessionWithDevices(ctx context.Context, session *session.Session) error {
+	args := m.Called(ctx, session)
+	return args.Error(0)
+}
+
+func (m *mockSessionRepository) InsertDevice(ctx context.Context, newDevice *session.Device) error {
+	args := m.Called(ctx, newDevice)
 	return args.Error(0)
 }
 
@@ -194,7 +200,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_Success() {
 			registrationFlow.ExpiresAt = time.Now().Add(900 * time.Hour)
 		}).
 		Return(nil).Once()
-	s.mockSessionRepository.On("QuerySession", ctx, mock.Anything).
+	s.mockSessionRepository.On("QuerySessionWithDevices", ctx, mock.Anything).
 		Run(func(args mock.Arguments) {
 			preSession := args.Get(1).(*session.Session)
 			preSession.Devices = []session.Device{
@@ -203,7 +209,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_Success() {
 			preSession.ExpiresAt = time.Now().Add(900 * time.Hour)
 		}).
 		Return(nil).Once()
-	s.mockSessionRepository.On("UpdateDevice", ctx, mock.Anything, mock.Anything).Return(nil).Once()
+	s.mockSessionRepository.On("InsertDevice", ctx, mock.Anything).Return(nil).Once()
 	s.mockIdentityRepository.On("EmailExists", ctx, registrationFlow.Identity.Emails[0].Value).Return(false, nil).Once() // Email doesn't exist
 	s.mockIdentityRepository.On("CreateIdentity", ctx, mock.Anything).
 		Run(func(args mock.Arguments) {
@@ -278,7 +284,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_SessionExpire() {
 			registrationFlow.ExpiresAt = time.Now().Add(900 * time.Hour)
 		}).
 		Return(nil).Once()
-	s.mockSessionRepository.On("QuerySession", ctx, mock.Anything).
+	s.mockSessionRepository.On("QuerySessionWithDevices", ctx, mock.Anything).
 		Run(func(args mock.Arguments) {
 			preSession := args.Get(1).(*session.Session)
 			preSession.Devices = []session.Device{
@@ -319,7 +325,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_DeviceExist() {
 			registrationFlow.ExpiresAt = time.Now().Add(900 * time.Hour)
 		}).
 		Return(nil).Once()
-	s.mockSessionRepository.On("QuerySession", ctx, mock.Anything).
+	s.mockSessionRepository.On("QuerySessionWithDevices", ctx, mock.Anything).
 		Run(func(args mock.Arguments) {
 			preSession := args.Get(1).(*session.Session)
 			preSession.ExpiresAt = time.Now().Add(900 * time.Hour)
@@ -365,7 +371,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_EmailExists() {
 			registrationFlow.ExpiresAt = time.Now().Add(900 * time.Hour)
 		}).
 		Return(nil).Once()
-	s.mockSessionRepository.On("QuerySession", ctx, mock.Anything).
+	s.mockSessionRepository.On("QuerySessionWithDevices", ctx, mock.Anything).
 		Run(func(args mock.Arguments) {
 			preSession := args.Get(1).(*session.Session)
 			preSession.Devices = []session.Device{
@@ -374,7 +380,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_EmailExists() {
 			preSession.ExpiresAt = time.Now().Add(900 * time.Hour)
 		}).
 		Return(nil).Once()
-	s.mockSessionRepository.On("UpdateDevice", ctx, mock.Anything, mock.Anything).Return(nil).Once()
+	s.mockSessionRepository.On("InsertDevice", ctx, mock.Anything).Return(nil).Once()
 	s.mockIdentityRepository.On("EmailExists", ctx, registrationFlow.Identity.Emails[0].Value).Return(true, nil).Once() // Email exist
 
 	// Act: call CompleteRegistrationFlow
@@ -408,7 +414,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_WeakPassword() {
 			registrationFlow.ExpiresAt = time.Now().Add(900 * time.Hour)
 		}).
 		Return(nil).Once()
-	s.mockSessionRepository.On("QuerySession", ctx, mock.Anything).
+	s.mockSessionRepository.On("QuerySessionWithDevices", ctx, mock.Anything).
 		Run(func(args mock.Arguments) {
 			preSession := args.Get(1).(*session.Session)
 			preSession.Devices = []session.Device{
@@ -417,7 +423,7 @@ func (s *serviceTestSuite) TestCompleteRegistrationFlow_WeakPassword() {
 			preSession.ExpiresAt = time.Now().Add(900 * time.Hour)
 		}).
 		Return(nil).Once()
-	s.mockSessionRepository.On("UpdateDevice", ctx, mock.Anything, mock.Anything).Return(nil).Once()
+	s.mockSessionRepository.On("InsertDevice", ctx, mock.Anything).Return(nil).Once()
 	s.mockIdentityRepository.On("EmailExists", ctx, registrationFlow.Identity.Emails[0].Value).Return(false, nil).Once() // Email doesn't exist
 	// Act: call CompleteRegistrationFlow
 	var err error

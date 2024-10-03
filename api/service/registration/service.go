@@ -81,16 +81,16 @@ func (s *service) CompleteRegistrationFlow(ctx context.Context, flow *registrati
 	}
 	// check if session expired
 	preSessionData := &session.Session{ID: flow.SessionID}
-	if err = s.session.QuerySession(ctx, preSessionData); err != nil {
+	if err = s.session.QuerySessionWithDevices(ctx, preSessionData); err != nil {
 		return nil, err
 	}
 	if preSessionData.IsExpired() {
 		return nil, ErrSessionExpired
 	}
 
-	UserDevice := &session.Device{IPAddress: ipAddress, UserAgent: userAgent, GeoLocation: "(unimplemented)"}
+	UserDevice := &session.Device{IPAddress: ipAddress, UserAgent: userAgent, GeoLocation: "(unimplemented)", SessionID: preSessionData.ID}
 	if !preSessionData.DeviceExists(UserDevice) {
-		if err = s.session.UpdateDevice(ctx, preSessionData, UserDevice); err != nil {
+		if err = s.session.InsertDevice(ctx, UserDevice); err != nil {
 			return nil, err
 		}
 	}

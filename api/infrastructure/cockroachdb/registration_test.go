@@ -21,12 +21,12 @@ type RegistrationRepositorySuite struct {
 }
 
 var (
-	sessionID1 = uuid.New()
-	sessionID2 = uuid.New()
-	sessionID3 = uuid.New()
-	flowID1    = uuid.New()
-	flowID2    = uuid.New()
-	flowID3    = uuid.New()
+	registrationSessionID1 = uuid.New()
+	registrationSessionID2 = uuid.New()
+	registrationSessionID3 = uuid.New()
+	registrationFlowID1    = uuid.New()
+	registrationFlowID2    = uuid.New()
+	registrationFlowID3    = uuid.New()
 )
 
 func (s *RegistrationRepositorySuite) SetupSuite() {
@@ -45,7 +45,7 @@ func (s *RegistrationRepositorySuite) SetupSuite() {
         ($1, true, 1, current_timestamp, current_timestamp + interval '2 hours'),
         ($2, false, 1, current_timestamp, current_timestamp + interval '2 hours'),
         ($3, true, 2, current_timestamp, current_timestamp + interval '2 hours')
-    `, sessionID1, sessionID2, sessionID3)
+    `, registrationSessionID1, registrationSessionID2, registrationSessionID3)
 	s.Require().NoError(err)
 
 	_, err = s.pool.Exec(ctx, `
@@ -54,8 +54,8 @@ func (s *RegistrationRepositorySuite) SetupSuite() {
         ($1, current_timestamp, current_timestamp + interval '2 hours', $4),
         ($2, current_timestamp, current_timestamp + interval '2 hours', $5),
         ($3, current_timestamp, current_timestamp + interval '2 hours', $6)
-    `, flowID1, flowID2, flowID3,
-		sessionID1, sessionID2, sessionID3)
+    `, registrationFlowID1, registrationFlowID2, registrationFlowID3,
+		registrationSessionID1, registrationSessionID2, registrationSessionID3)
 	s.Require().NoError(err)
 }
 
@@ -124,11 +124,11 @@ func (s *RegistrationRepositorySuite) TestQueryFlow1() {
 
 	// below is the test
 	flow := &registration.Flow{
-		FlowID: flowID1.String(),
+		FlowID: registrationFlowID1.String(),
 	}
 	err := s.repository.QueryFlowByFlowID(ctx, flow)
 	s.Require().NoError(err)
-	s.Require().Equal(sessionID1.String(), flow.SessionID)
+	s.Require().Equal(registrationSessionID1.String(), flow.SessionID)
 	s.Require().NotEmpty(flow.IssuedAt)
 	s.Require().NotEmpty(flow.ExpiresAt)
 	s.Greater(flow.ExpiresAt, flow.IssuedAt)
@@ -142,7 +142,7 @@ func (s *RegistrationRepositorySuite) TestQueryFlow2_SetUpAllField_ShouldOverWri
 	ctx := context.Background()
 
 	flow := &registration.Flow{
-		FlowID:    flowID2.String(),
+		FlowID:    registrationFlowID2.String(),
 		SessionID: "ed074d1e-fe04-4683-9239-91cf59f126c9",
 		IssuedAt:  issuedAt,
 		ExpiresAt: expiresAt,
