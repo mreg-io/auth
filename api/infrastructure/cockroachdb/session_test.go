@@ -193,7 +193,7 @@ func (s *SessionRepositorySuite) TestCreateSession_MultipleDevices() {
 	s.Require().Error(err)
 }
 
-func (s *SessionRepositorySuite) TestQuerySessionBySessionID_NoErr() {
+func (s *SessionRepositorySuite) TestQuerySessionByID_NoErr() {
 	ctx := context.Background()
 
 	// below is the test
@@ -209,7 +209,7 @@ func (s *SessionRepositorySuite) TestQuerySessionBySessionID_NoErr() {
 	s.Require().Equal(sessionIdentityID1.String(), sessionData.Identity.ID)
 }
 
-func (s *SessionRepositorySuite) TestQuerySessionBySessionID_NotExistSessionID() {
+func (s *SessionRepositorySuite) TestQuerySessionByID_NotExistSessionID() {
 	ctx := context.Background()
 
 	// below is the test
@@ -220,7 +220,7 @@ func (s *SessionRepositorySuite) TestQuerySessionBySessionID_NotExistSessionID()
 	s.Require().Error(err)
 }
 
-func (s *SessionRepositorySuite) TestQuerySessionBySessionID_AuthenticatorAssuranceLevel_Is_NULL_NoErr() {
+func (s *SessionRepositorySuite) TestQuerySessionByID_AuthenticatorAssuranceLevel_Is_NULL_NoErr() {
 	ctx := context.Background()
 
 	// below is the test
@@ -236,7 +236,7 @@ func (s *SessionRepositorySuite) TestQuerySessionBySessionID_AuthenticatorAssura
 	s.Require().Equal(sessionIdentityID2.String(), sessionData.Identity.ID)
 }
 
-func (s *SessionRepositorySuite) TestQuerySessionBySessionID_NoIdentity_NoErr() {
+func (s *SessionRepositorySuite) TestQuerySessionByID_NoIdentity_NoErr() {
 	ctx := context.Background()
 
 	// below is the test

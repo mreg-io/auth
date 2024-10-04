@@ -15,8 +15,8 @@ import (
 //go:embed sql/createSession.sql
 var createSessionSQL string
 
-//go:embed sql/querySessionBySessionID.sql
-var querySessionBySessionIDSQL string
+//go:embed sql/querySessionByID.sql
+var querySessionByIDSQL string
 
 //go:embed sql/querySessionWithDevices.sql
 var querySessionWithDevicesSQL string
@@ -78,7 +78,7 @@ func (r *sessionRepository) QuerySessionByID(ctx context.Context, session *sessi
 	return r.db.
 		QueryRow(
 			ctx,
-			querySessionBySessionIDSQL,
+			querySessionByIDSQL,
 			session.ID,
 		).
 		Scan(sessionFields(session)...)
@@ -91,7 +91,7 @@ func (r *sessionRepository) QuerySessionWithDevices(ctx context.Context, session
 	err := r.db.
 		QueryRow(
 			ctx,
-			querySessionBySessionIDSQL,
+			querySessionByIDSQL,
 			sessionData.ID,
 		).
 		Scan(sessionFields(sessionData)...)

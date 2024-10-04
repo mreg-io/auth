@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,8 +25,13 @@ func generateRandomEmail() string {
 }
 
 var (
-	identityEmail1 = generateRandomEmail()
-	password1      = "password123"
+	identityIdentityID1            = uuid.New() // for query
+	identityIdentityID2            = uuid.New() // for query
+	identityEmail1                 = generateRandomEmail()
+	identityEmail2                 = generateRandomEmail()
+	verifiedAt1                    = time.Date(6069, time.October, 4, 5, 35, 44, 155200000, time.UTC)
+	identityEmailForCreateIdentity = generateRandomEmail()
+	password1                      = "password123"
 )
 
 func (i *IdentityRepositorySuite) SetupSuite() {
@@ -34,13 +40,31 @@ func (i *IdentityRepositorySuite) SetupSuite() {
 	i.pool, err = pgxpool.NewWithConfig(context.Background(), config)
 	i.Require().NoError(err)
 	i.repository = NewIdentityRepository(i.pool)
+
+	ctx := context.Background()
+	_, err = i.pool.Exec(ctx, `
+        INSERT INTO identities (id, timezone) 
+        VALUES 
+        ($1, 'Thailand'),
+        ($2, 'Taiwan')
+    `, identityIdentityID1, identityIdentityID2)
+	i.Require().NoError(err)
+
+	_, err = i.pool.Exec(ctx, `
+        INSERT INTO emails (address, verified, verified_at, identity_id) 
+        VALUES 
+        ($1, DEFAULT, NULL, $2),
+        ($3, True, $4, $5)
+    `, identityEmail1, identityIdentityID1,
+		identityEmail2, verifiedAt1, identityIdentityID2)
+	i.Require().NoError(err)
 }
 
 func (i *IdentityRepositorySuite) TestCreateIdentity_WithoutErr() {
 	ctx := context.Background()
 	var err error
 	newEmail := identity.Email{
-		Value:    identityEmail1,
+		Value:    identityEmailForCreateIdentity,
 		Verified: false,
 	}
 	newIdentity := &identity.Identity{
@@ -130,6 +154,60 @@ func (i *IdentityRepositorySuite) TestCreateIdentity_NoEmail_Err() {
 		State:        identity.StateActive,
 	}
 	err = i.repository.CreateIdentity(ctx, newIdentity)
+	i.Require().Error(err)
+}
+
+func (i *IdentityRepositorySuite) TestEmailExist() {
+	ctx := context.Background()
+	exist, err := i.repository.EmailExists(ctx, identityEmail1)
+	i.Require().NoError(err)
+	i.Require().True(exist)
+
+	exist, err = i.repository.EmailExists(ctx, "non-existent-email@example.com")
+	i.Require().NoError(err)
+	i.Require().False(exist)
+}
+
+func (i *IdentityRepositorySuite) TestQueryEmail_NotVerifiedEmail_NoErr() {
+	ctx := context.Background()
+	queryEmail := &identity.Email{
+		Value: identityEmail1,
+	}
+	err := i.repository.QueryEmail(ctx, queryEmail)
+	i.Require().NoError(err)
+
+	// check the Value not changed
+	i.Require().Equal(identityEmail1, queryEmail.Value)
+
+	i.Require().False(queryEmail.Verified)
+	i.Require().NotEmpty(queryEmail.CreateTime)
+	i.Require().NotEmpty(queryEmail.VerifiedAt) // doesn't really matter since not verified
+	i.Require().NotEmpty(queryEmail.UpdateTime)
+}
+
+func (i *IdentityRepositorySuite) TestQueryEmail_VerifiedEmail_NoErr() {
+	ctx := context.Background()
+	queryEmail := &identity.Email{
+		Value: identityEmail2,
+	}
+	err := i.repository.QueryEmail(ctx, queryEmail)
+	i.Require().NoError(err)
+
+	// check the Value not changed
+	i.Require().Equal(identityEmail2, queryEmail.Value)
+
+	i.Require().True(queryEmail.Verified)
+	i.Require().NotEmpty(queryEmail.CreateTime)
+	i.Require().Equal(verifiedAt1, queryEmail.VerifiedAt.UTC())
+	i.Require().NotEmpty(queryEmail.UpdateTime)
+}
+
+func (i *IdentityRepositorySuite) TestQueryEmail_NotExistEmail_Err() {
+	ctx := context.Background()
+	queryEmail := &identity.Email{
+		Value: generateRandomEmail(),
+	}
+	err := i.repository.QueryEmail(ctx, queryEmail)
 	i.Require().Error(err)
 }
 

@@ -20,6 +20,9 @@ func NewIdentityRepository(db *pgxpool.Pool) identity.Repository {
 //go:embed sql/createIdentity.sql
 var createIdentitySQL string
 
+//go:embed sql/queryEmail.sql
+var queryEmailSQL string
+
 func createIdentityField(identity *identity.Identity) []interface{} {
 	return []interface{}{
 		&identity.ID,
@@ -44,12 +47,33 @@ func (i *IdentityRepository) CreateIdentity(ctx context.Context, identityData *i
 		Scan(createIdentityField(identityData)...)
 }
 
-func (i *IdentityRepository) EmailExists(context.Context, string) (bool, error) {
-	// TODO implement me
-	panic("implement me")
+func (i *IdentityRepository) EmailExists(ctx context.Context, emailAddress string) (bool, error) {
+	const query = `SELECT EXISTS(SELECT 1 FROM emails WHERE address = $1)`
+
+	var exists bool
+	err := i.db.QueryRow(ctx, query, emailAddress).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }
 
-func (i *IdentityRepository) QueryEmail(context.Context, *identity.Email) error {
-	// TODO implement me
-	panic("implement me")
+func QueryEmailField(email *identity.Email) []interface{} {
+	return []interface{}{
+		&email.Verified,
+		&email.CreateTime,
+		&email.VerifiedAt,
+		&email.UpdateTime,
+	}
+}
+
+func (i *IdentityRepository) QueryEmail(ctx context.Context, email *identity.Email) error {
+	return i.db.
+		QueryRow(
+			ctx,
+			queryEmailSQL,
+			email.Value,
+		).
+		Scan(QueryEmailField(email)...)
 }
